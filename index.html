@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sistem Puanı">
-<title>Sistem Kuralları Puanlama</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMkI2QjRGIi8+PHRleHQgeD0iNTAiIHk9IjY1IiBmb250LXNpemU9IjQ0IiBmb250LWZhbWlseT0iR2VvcmdpYSxzZXJpZiIgZmlsbD0iI0ZBRjdGMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0s8L3RleHQ+PC9zdmc+">
+<meta name="apple-mobile-web-app-title" content="Bahis Sistemim">
+<title>Bahis Sistemim</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMkI2QjRGIi8+PHRleHQgeD0iNTAiIHk9IjY1IiBmb250LXNpemU9IjQ0IiBmb250LWZhbWlseT0iR2VvcmdpYSxzZXJpZiIgZmlsbD0iI0ZBRjdGMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QlM8L3RleHQ+PC9zdmc+">
 <style>
   :root{
     --paper:#FAF7F0; --paper-line:#E4DECD; --ink:#2B2A28; --ink-soft:#7A7364;
     --rule:#D8D2C0; --green:#3F6B4F; --green-soft:#E6EEE7; --red:#A8442E; --red-soft:#F4E6E1;
+    --gold:#A9822E; --gold-soft:#F2ECDD;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
@@ -25,12 +26,26 @@
   main{flex:1; padding:6px 16px 20px;}
   .view{display:none;}
   .view.active{display:block;}
+  .subview{display:none;}
+  .subview.active{display:block;}
 
+  .card{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; padding:16px; margin-bottom:12px;}
+  .card h2{font-size:13px; margin:0 0 10px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.5px;}
+
+  .row{display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13.5px;}
+  .row .lbl{color:var(--ink-soft);}
+  .row .val{font-family:var(--mono); font-weight:700;}
+
+  input[type=text], input[type=number]{font-family:var(--mono); font-size:15px; padding:10px 12px; border:1px solid var(--rule); border-radius:8px; background:#fff; color:var(--ink); width:100%;}
+  label.field{display:block; font-size:12px; color:var(--ink-soft); margin:10px 0 4px;}
+  button.primary{width:100%; background:var(--ink); color:var(--paper); border:none; border-radius:8px; font-weight:700; font-size:14.5px; padding:13px; cursor:pointer; margin-top:6px;}
+  button.ghost{width:100%; background:none; border:1px solid var(--rule); color:var(--ink-soft); border-radius:8px; font-size:12.5px; padding:9px; margin-top:8px; cursor:pointer;}
+
+  /* --- Score screen --- */
   .section-card{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; margin-bottom:12px; overflow:hidden;}
   .section-head{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:rgba(0,0,0,0.03); border-bottom:1px solid var(--rule);}
   .section-head .name{font-weight:700; font-size:13.5px;}
   .section-head .sub-score{font-family:var(--mono); font-size:13px; color:var(--ink-soft);}
-
   .item-row{display:flex; align-items:flex-start; gap:10px; padding:11px 14px; border-bottom:1px solid var(--rule);}
   .item-row:last-child{border-bottom:none;}
   .checkbox{width:22px; height:22px; border-radius:6px; border:2px solid var(--ink-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; color:transparent; margin-top:1px;}
@@ -45,14 +60,9 @@
   .total-row .value.pass{color:var(--green);}
   .total-row .value.fail{color:var(--red);}
   .threshold-line{font-size:11px; color:var(--ink-soft); padding:2px 4px 10px;}
-
   .verdict-banner{margin:8px 4px 10px; padding:9px 12px; border-radius:8px; font-size:12.5px; font-weight:600; text-align:center;}
   .verdict-banner.pass{background:var(--green-soft); color:var(--green);}
   .verdict-banner.fail{background:var(--red-soft); color:var(--red);}
-
-  button.primary{width:100%; background:var(--ink); color:var(--paper); border:none; border-radius:8px; font-weight:700; font-size:14.5px; padding:13px; cursor:pointer;}
-  button.reset{width:100%; background:none; border:1px solid var(--rule); color:var(--ink-soft); border-radius:8px; font-size:12.5px; padding:9px; margin-top:8px; cursor:pointer;}
-
   .settings-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px 14px; font-size:12.5px; color:var(--ink-soft);}
   .settings-row input{width:60px; font-family:var(--mono); font-size:14px; padding:6px 8px; border:1px solid var(--rule); border-radius:6px; background:#fff; color:var(--ink); text-align:center;}
 
@@ -66,7 +76,30 @@
   .stamp .caption{font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-soft); margin-top:6px;}
   .stamp button{margin-top:16px;}
 
-  /* history */
+  /* --- Kasa screen --- */
+  .stake-display{text-align:center; padding:22px 10px 18px;}
+  .stake-display .lbl{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.6px;}
+  .stake-display .num{font-family:var(--mono); font-size:46px; font-weight:800; color:var(--ink); margin-top:4px;}
+  .stake-display .sub{font-size:12px; color:var(--ink-soft); margin-top:6px;}
+  .progress-wrap{height:8px; background:var(--rule); border-radius:4px; overflow:hidden; margin:10px 0 2px;}
+  .progress-bar{height:100%; background:var(--green);}
+  .action-btns{display:flex; gap:10px; margin-top:14px;}
+  .action-btns button{flex:1; border:none; border-radius:9px; font-weight:700; font-size:14px; padding:14px 8px; cursor:pointer;}
+  .btn-win{background:var(--green-soft); color:var(--green);}
+  .btn-lose{background:var(--red-soft); color:var(--red);}
+  .warn-banner{background:var(--gold-soft); color:var(--gold); font-size:12px; padding:9px 12px; border-radius:8px; margin-bottom:10px; text-align:center;}
+  .status-banner{padding:10px 12px; border-radius:8px; font-size:13px; font-weight:700; text-align:center; margin-bottom:10px;}
+  .status-banner.win{background:var(--green-soft); color:var(--green);}
+  .status-banner.bust{background:var(--red-soft); color:var(--red);}
+  .log-row{display:flex; justify-content:space-between; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--rule);}
+  .log-row:last-child{border-bottom:none;}
+  .log-row .win{color:var(--green); font-weight:700;}
+  .log-row .lose{color:var(--red); font-weight:700;}
+
+  /* --- History --- */
+  .seg{display:flex; gap:8px; margin-bottom:14px;}
+  .seg button{flex:1; padding:9px; border-radius:8px; border:1px solid var(--rule); background:none; color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer;}
+  .seg button.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
   .hist-entry{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; margin-bottom:10px; padding:12px 14px;}
   .hist-top{display:flex; justify-content:space-between; align-items:center;}
   .hist-date{font-size:12px; color:var(--ink-soft);}
@@ -77,7 +110,30 @@
   .hist-tag.pass{background:var(--green-soft); color:var(--green);}
   .hist-tag.fail{background:var(--red-soft); color:var(--red);}
   .hist-missed{font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5;}
+  .set-entry{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; padding:12px 14px; margin-bottom:10px;}
+  .set-top{display:flex; justify-content:space-between; align-items:center;}
+  .set-tag{font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px;}
+  .set-tag.win{background:var(--green-soft); color:var(--green);}
+  .set-tag.bust{background:var(--red-soft); color:var(--red);}
   .empty{text-align:center; color:var(--ink-soft); font-size:13px; padding:30px 10px;}
+
+  /* --- Stats --- */
+  .stat-grid{display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;}
+  .stat-box{flex:1; min-width:90px; text-align:center; padding:12px 6px; background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px;}
+  .stat-box .num{font-family:var(--mono); font-size:19px; font-weight:700;}
+  .stat-box .num.pos{color:var(--green);}
+  .stat-box .num.neg{color:var(--red);}
+  .stat-box .lbl{font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;}
+  .bar-row{margin-bottom:10px;}
+  .bar-row .top-line{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px;}
+  .bar-row .top-line .name{color:var(--ink);}
+  .bar-row .top-line .figs{font-family:var(--mono); color:var(--ink-soft);}
+  .bar-track{height:8px; background:var(--rule); border-radius:4px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--green);}
+  .bar-fill.low{background:var(--red);}
+  .missed-freq-row{display:flex; justify-content:space-between; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--rule);}
+  .missed-freq-row:last-child{border-bottom:none;}
+  .missed-freq-row .cnt{font-family:var(--mono); font-weight:700; color:var(--red);}
 
   nav.tabbar{position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto; background:rgba(250,247,240,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--rule); display:flex; padding-bottom:env(safe-area-inset-bottom);}
   nav.tabbar button{flex:1; background:none; border:none; padding:10px 4px 8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-soft); font-size:10px;}
@@ -88,43 +144,182 @@
 <body>
 <div id="app">
   <header>
-    <h1>Sistem Kuralları Puanlama</h1>
+    <h1 id="pageTitle">Sistem Kuralları Puanlama</h1>
     <div class="sub" id="dateLabel"></div>
   </header>
 
   <main>
+    <!-- ============ TAB 1: PUANLA ============ -->
     <section class="view active" id="view-score">
       <div class="settings-row">
         <span>Bahis alma eşiği</span>
         <div><input type="number" id="thresholdInput" min="0" max="100" value="90"> / 100</div>
       </div>
       <div id="sections"></div>
-
       <div class="total-bar">
-        <div class="total-row">
-          <div class="label">Toplam Puan</div>
-          <div class="value" id="liveTotal">0</div>
-        </div>
+        <div class="total-row"><div class="label">Toplam Puan</div><div class="value" id="liveTotal">0</div></div>
         <div class="threshold-line" id="thresholdLine"></div>
         <div class="verdict-banner" id="verdictBanner"></div>
-        <button class="primary" onclick="saveEntry()">Kaydet</button>
-        <button class="reset" onclick="resetChecks()">Formu Sıfırla</button>
+        <button class="primary" onclick="saveScoreEntry()">Kaydet</button>
+        <button class="ghost" onclick="resetChecks()">Formu Sıfırla</button>
       </div>
     </section>
 
+    <!-- ============ TAB 2: KASA ============ -->
+    <section class="view" id="view-kasa">
+      <div class="subview active" id="kasa-setup">
+        <div class="card">
+          <h2>Yeni Set Başlat</h2>
+          <label class="field">Kasa tutarı (TL)</label>
+          <input type="number" id="setupKasa" placeholder="örn. 7000" value="7000">
+          <label class="field">Ortalama bahis oranı</label>
+          <input type="number" id="setupOdds" step="0.01" value="1.50">
+          <button class="primary" onclick="startNewSet()">Seti Başlat</button>
+        </div>
+      </div>
+
+      <div class="subview" id="kasa-active">
+        <div id="statusBannerWrap"></div>
+        <div class="card">
+          <h2>Set Özeti</h2>
+          <div class="row"><div class="lbl">Başlangıç Kasa</div><div class="val" id="sKasa">-</div></div>
+          <div class="row"><div class="lbl">Hedef Kazanç (kasa/3)</div><div class="val" id="sHedef">-</div></div>
+          <div class="row"><div class="lbl">Toplam Hedef Varlık</div><div class="val" id="sToplam">-</div></div>
+          <div class="row"><div class="lbl">Ortalama Oran</div><div class="val" id="sOdds">-</div></div>
+          <div class="row"><div class="lbl">Gerçekleşen Kayıp</div><div class="val" id="sLoss">-</div></div>
+          <div class="row"><div class="lbl">Tahmini Kalan Kasa</div><div class="val" id="sRemain">-</div></div>
+        </div>
+        <div class="card" id="liveCard">
+          <h2>Şu An</h2>
+          <div class="row"><div class="lbl">Seri</div><div class="val" id="curSeries">-</div></div>
+          <div class="row"><div class="lbl">Serinin Maçı</div><div class="val" id="curMatch">-</div></div>
+          <div class="stake-display">
+            <div class="lbl">Bu maça gireceğin tutar</div>
+            <div class="num" id="curStake">0</div>
+            <div class="sub" id="curProgressLabel"></div>
+            <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+          </div>
+          <label class="field">Bu maçın gerçek oranı (farklıysa değiştir)</label>
+          <input type="number" id="matchOdds" step="0.01">
+          <div class="action-btns">
+            <button class="btn-win" onclick="recordResult('win')">✓ Kazandım</button>
+            <button class="btn-lose" onclick="recordResult('lose')">✕ Kaybettim</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Bu Setin Geçmişi</h2>
+          <div id="matchLog"><div class="empty">Henüz maç kaydı yok.</div></div>
+        </div>
+        <button class="ghost" onclick="confirmResetSet()">Bu Seti Bitir / Yeni Set Başlat</button>
+      </div>
+    </section>
+
+    <!-- ============ TAB 3: KUPON ============ -->
+    <section class="view" id="view-kupon">
+      <div class="card" id="kuponContextCard">
+        <h2>Şu Anki Bağlam</h2>
+        <div class="row"><div class="lbl">Son Sistem Puanı</div><div class="val" id="ctxScore">-</div></div>
+        <div class="row"><div class="lbl">Aktif Kasa Önerisi</div><div class="val" id="ctxKasa">-</div></div>
+      </div>
+      <div class="card">
+        <h2>Yeni Kupon Ekle</h2>
+        <label class="field">Bahis Türü</label>
+        <input type="text" id="kuponType" placeholder="örn. Üst 2.5, MS1, KG Var">
+        <label class="field">Bahis Oranı</label>
+        <input type="number" id="kuponOdds" step="0.01" placeholder="örn. 1.85">
+        <label class="field">Oynanan Tutar (TL)</label>
+        <input type="number" id="kuponStake" step="0.01" placeholder="örn. 1000">
+        <button class="primary" onclick="addKupon()">Kaydet (tarih-saat otomatik)</button>
+      </div>
+      <div class="card">
+        <h2>Bekleyen Kuponlar</h2>
+        <div id="kuponPending"><div class="empty">Bekleyen kupon yok.</div></div>
+      </div>
+    </section>
+
+    <!-- ============ TAB 4: GEÇMİŞ ============ -->
     <section class="view" id="view-history">
-      <div id="histList"></div>
+      <div class="seg">
+        <button class="active" id="segScoreBtn" onclick="switchHistSub('score')">Puanlama</button>
+        <button id="segKasaBtn" onclick="switchHistSub('kasa')">Set</button>
+        <button id="segKuponBtn" onclick="switchHistSub('kupon')">Kupon</button>
+      </div>
+      <div class="subview active" id="hist-score"><div id="histList"></div></div>
+      <div class="subview" id="hist-kasa"><div id="setsList"></div></div>
+      <div class="subview" id="hist-kupon"><div id="kuponList"></div></div>
+    </section>
+
+    <!-- ============ TAB 5: İSTATİSTİK ============ -->
+    <section class="view" id="view-stats">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="stTotalKupon">0</div><div class="lbl">Kupon</div></div>
+        <div class="stat-box"><div class="num" id="stWinRate">0%</div><div class="lbl">Başarı</div></div>
+        <div class="stat-box"><div class="num" id="stNet">0</div><div class="lbl">Net (TL)</div></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="num" id="stCurStreak">0</div><div class="lbl">Güncel Kayıp Serisi</div></div>
+        <div class="stat-box"><div class="num" id="stMaxStreak">0</div><div class="lbl">En Uzun Kayıp Serisi</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Bahis Türüne Göre Başarı</h2>
+        <div id="statByType"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Puan Aralığına Göre Başarı</h2>
+        <div id="statByScore"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Zaman Dilimine Göre Başarı</h2>
+        <div id="statByTime"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>En Sık Kaçırılan Sistem Kuralları</h2>
+        <div id="statMissed"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Set Özeti</h2>
+        <div class="row"><div class="lbl">Toplam Set</div><div class="val" id="stSetTotal">0</div></div>
+        <div class="row"><div class="lbl">Tamamlanan</div><div class="val" id="stSetDone">0</div></div>
+        <div class="row"><div class="lbl">Kasa Tükenen</div><div class="val" id="stSetBust">0</div></div>
+        <div class="row"><div class="lbl">Toplam Gerçekleşen Kayıp</div><div class="val" id="stSetLoss">0</div></div>
+      </div>
     </section>
   </main>
 
   <nav class="tabbar">
     <button class="active" data-view="score" onclick="switchTab('score')"><span class="ic">✓</span>Puanla</button>
+    <button data-view="kasa" onclick="switchTab('kasa')"><span class="ic">◎</span>Kasa</button>
+    <button data-view="kupon" onclick="switchTab('kupon')"><span class="ic">🎫</span>Kupon</button>
     <button data-view="history" onclick="switchTab('history')"><span class="ic">▤</span>Geçmiş</button>
+    <button data-view="stats" onclick="switchTab('stats')"><span class="ic">📊</span>İstatistik</button>
   </nav>
 </div>
 
 <script>
-// ---------- SABİT CHECKLİST TANIMI ----------
+document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('tr-TR', { weekday:'long', day:'numeric', month:'long' });
+
+function switchTab(name){
+  document.querySelectorAll('#app > main > .view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  const titles = { score:'Sistem Kuralları Puanlama', kasa:'Kasa / Set / Seri', kupon:'Kupon Ekle', history:'Geçmiş Kayıtlar', stats:'İstatistik / Analiz' };
+  document.getElementById('pageTitle').textContent = titles[name];
+  if(name==='kasa') renderActive();
+  if(name==='kupon') { renderKuponContext(); renderKuponPending(); }
+  if(name==='history') { renderHistory(); renderSetHistory(); renderKuponHistory(); }
+  if(name==='stats') renderStatsScreen();
+}
+
+function fmt(n){ return (Math.round(n*100)/100).toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+/* =====================================================
+   TAB 1 — SİSTEM KURALLARI PUANLAMA
+===================================================== */
 const CHECKLIST = [
   { section: "Maç Öncesi Analiz", items: [
     { id:'a1', txt:'Bahis alınacak anlamlı bir skor veya durum var mı?', pts:11 },
@@ -152,27 +347,18 @@ const CHECKLIST = [
   ]},
 ];
 const MAX_TOTAL = CHECKLIST.reduce((s,sec)=>s+sec.items.reduce((s2,i)=>s2+i.pts,0),0);
-
 let checkedState = {};
 
 function loadThreshold(){ return parseInt(localStorage.getItem('sk_threshold') || '90', 10); }
 function saveThreshold(v){ localStorage.setItem('sk_threshold', String(v)); }
-function loadHistory(){ return JSON.parse(localStorage.getItem('sk_history') || '[]'); }
-function saveHistory(h){ localStorage.setItem('sk_history', JSON.stringify(h)); }
+function loadScoreHistory(){ return JSON.parse(localStorage.getItem('sk_history') || '[]'); }
+function saveScoreHistory(h){ localStorage.setItem('sk_history', JSON.stringify(h)); }
 
-document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('tr-TR', { weekday:'long', day:'numeric', month:'long' });
 document.getElementById('thresholdInput').value = loadThreshold();
 document.getElementById('thresholdInput').addEventListener('change', e=>{
   let v = parseInt(e.target.value,10); if(isNaN(v)) v=90; v=Math.max(0,Math.min(100,v));
   e.target.value = v; saveThreshold(v); renderTotals();
 });
-
-function switchTab(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
-  if(name==='history') renderHistory();
-}
 
 function renderSections(){
   const el = document.getElementById('sections');
@@ -190,13 +376,8 @@ function renderSections(){
     </div>`;
   }).join('');
 }
-
 function toggleCheck(id){ checkedState[id] = !checkedState[id]; renderSections(); renderTotals(); }
-
-function currentTotal(){
-  return CHECKLIST.reduce((s,sec)=>s+sec.items.reduce((s2,i)=>s2+(checkedState[i.id]?i.pts:0),0),0);
-}
-
+function currentTotal(){ return CHECKLIST.reduce((s,sec)=>s+sec.items.reduce((s2,i)=>s2+(checkedState[i.id]?i.pts:0),0),0); }
 function renderTotals(){
   const total = currentTotal();
   const threshold = loadThreshold();
@@ -209,22 +390,19 @@ function renderTotals(){
   banner.className = 'verdict-banner ' + (pass?'pass':'fail');
   banner.textContent = pass ? 'BAHİS ALINABİLİR' : 'BAHİS ALINAMAZ — eşik altında';
 }
-
 function resetChecks(){ checkedState = {}; renderSections(); renderTotals(); }
-
-function saveEntry(){
+function saveScoreEntry(){
   const total = currentTotal();
   const threshold = loadThreshold();
   const pass = total >= threshold;
   const missed = [];
   CHECKLIST.forEach(sec=>sec.items.forEach(it=>{ if(!checkedState[it.id]) missed.push({section:sec.section, txt:it.txt, pts:it.pts}); }));
-  const hist = loadHistory();
+  const hist = loadScoreHistory();
   hist.push({ date:new Date().toISOString(), total, threshold, pass, missed });
-  saveHistory(hist);
-  showStamp(total, pass);
+  saveScoreHistory(hist);
+  showScoreStamp(total, pass);
 }
-
-function showStamp(total, pass){
+function showScoreStamp(total, pass){
   const overlay = document.createElement('div');
   overlay.className = 'stamp-overlay';
   overlay.innerHTML = `
@@ -237,8 +415,250 @@ function showStamp(total, pass){
   document.body.appendChild(overlay);
 }
 
+/* =====================================================
+   TAB 2 — KASA / SET / SERİ
+===================================================== */
+function loadKasaState(){ return JSON.parse(localStorage.getItem('kb_state') || 'null'); }
+function saveKasaState(s){ localStorage.setItem('kb_state', JSON.stringify(s)); }
+function loadSetHistory(){ return JSON.parse(localStorage.getItem('kb_set_history') || '[]'); }
+function saveSetHistory(h){ localStorage.setItem('kb_set_history', JSON.stringify(h)); }
+
+function startNewSet(){
+  const kasa = parseFloat(document.getElementById('setupKasa').value);
+  const odds = parseFloat(document.getElementById('setupOdds').value);
+  if(!kasa || kasa<=0 || !odds || odds<=1){ alert('Geçerli bir kasa tutarı ve 1\'den büyük bir oran gir.'); return; }
+  const state = {
+    kasaStart: kasa, odds: odds, seriesIndex: 1, matchIndex: 1,
+    currentStake: Math.round((kasa/7)*100)/100, realizedLoss: 0,
+    status: 'active', log: [], startedAt: new Date().toISOString()
+  };
+  saveKasaState(state);
+  renderActive();
+}
+
+function renderActive(){
+  const st = loadKasaState();
+  const setupEl = document.getElementById('kasa-setup');
+  const activeEl = document.getElementById('kasa-active');
+  if(!st){ setupEl.classList.add('active'); activeEl.classList.remove('active'); return; }
+  setupEl.classList.remove('active'); activeEl.classList.add('active');
+
+  const targetProfit = st.kasaStart/3;
+  const totalTarget = st.kasaStart + targetProfit;
+  const remain = st.kasaStart - st.realizedLoss;
+
+  document.getElementById('sKasa').textContent = fmt(st.kasaStart) + ' TL';
+  document.getElementById('sHedef').textContent = fmt(targetProfit) + ' TL';
+  document.getElementById('sToplam').textContent = fmt(totalTarget) + ' TL';
+  document.getElementById('sOdds').textContent = st.odds.toFixed(2);
+  document.getElementById('sLoss').textContent = fmt(st.realizedLoss) + ' TL';
+  document.getElementById('sRemain').textContent = fmt(remain) + ' TL';
+
+  const bannerWrap = document.getElementById('statusBannerWrap');
+  const liveCard = document.getElementById('liveCard');
+  if(st.status === 'completed'){
+    bannerWrap.innerHTML = '<div class="status-banner win">SET TAMAMLANDI — Hedefe ulaşıldı</div>';
+    liveCard.style.display = 'none';
+  } else if(st.status === 'busted'){
+    bannerWrap.innerHTML = '<div class="status-banner bust">SET BİTTİ — Kasa tükendi</div>';
+    liveCard.style.display = 'none';
+  } else {
+    bannerWrap.innerHTML = '';
+    liveCard.style.display = '';
+    document.getElementById('curSeries').textContent = st.seriesIndex;
+    document.getElementById('curMatch').textContent = st.matchIndex;
+    document.getElementById('curStake').textContent = fmt(st.currentStake) + ' TL';
+    document.getElementById('matchOdds').value = st.odds.toFixed(2);
+    const pct = Math.min(100, Math.round((st.currentStake/totalTarget)*100));
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('curProgressLabel').textContent = `Bu maçı kazanırsan: ${fmt(st.currentStake*st.odds)} TL (hedef: ${fmt(totalTarget)} TL)`;
+    if(remain - st.currentStake < 0){
+      bannerWrap.innerHTML = '<div class="warn-banner">Uyarı: bu bahis, sette kalan tahmini kasadan büyük.</div>';
+    }
+  }
+  renderMatchLog(st);
+}
+
+function renderMatchLog(st){
+  const el = document.getElementById('matchLog');
+  if(!st.log || st.log.length===0){ el.innerHTML = '<div class="empty">Henüz maç kaydı yok.</div>'; return; }
+  el.innerHTML = st.log.slice().reverse().map(l=>`
+    <div class="log-row">
+      <div>Seri ${l.series} · Maç ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)}</div>
+      <div class="${l.result==='win'?'win':'lose'}">${l.result==='win'?'KAZANDI':'KAYBETTİ'}</div>
+    </div>`).join('');
+}
+
+function recordResult(result){
+  const st = loadKasaState();
+  if(!st || st.status !== 'active') return;
+  const usedOdds = parseFloat(document.getElementById('matchOdds').value) || st.odds;
+  st.log.push({ series: st.seriesIndex, match: st.matchIndex, stake: st.currentStake, odds: usedOdds, result, date: new Date().toISOString() });
+
+  const targetProfit = st.kasaStart/3;
+  const totalTarget = st.kasaStart + targetProfit;
+
+  if(result === 'win'){
+    const nextAmount = Math.round(st.currentStake * usedOdds * 100)/100;
+    if(nextAmount >= totalTarget){ st.status = 'completed'; }
+    else { st.currentStake = nextAmount; st.matchIndex += 1; }
+  } else {
+    st.realizedLoss = Math.round((st.realizedLoss + st.currentStake)*100)/100;
+    st.seriesIndex += 1;
+    st.matchIndex = 1;
+    const newBase = Math.round((st.kasaStart/7) * Math.pow(2, st.seriesIndex-1) * 100)/100;
+    const remain = st.kasaStart - st.realizedLoss;
+    if(newBase > remain || remain <= 0){ st.status = 'busted'; }
+    else { st.currentStake = newBase; }
+  }
+  saveKasaState(st);
+  if(st.status === 'completed' || st.status === 'busted'){ archiveSet(st); }
+  renderActive();
+}
+
+function archiveSet(st){
+  const hist = loadSetHistory();
+  hist.push({
+    kasaStart: st.kasaStart, odds: st.odds, status: st.status,
+    realizedLoss: st.realizedLoss, matchCount: st.log.length,
+    startedAt: st.startedAt, endedAt: new Date().toISOString(), log: st.log
+  });
+  saveSetHistory(hist);
+}
+
+function confirmResetSet(){
+  if(!confirm('Bu aktif seti kapatıp yeni bir set mi başlatmak istiyorsun? (Geçmişte kalır, silinmez)')) return;
+  const st = loadKasaState();
+  if(st && st.status === 'active'){ st.status = 'busted'; archiveSet(st); }
+  localStorage.removeItem('kb_state');
+  renderActive();
+}
+
+/* =====================================================
+   TAB 3 — GEÇMİŞ
+===================================================== */
+function switchHistSub(which){
+  document.getElementById('hist-score').classList.toggle('active', which==='score');
+  document.getElementById('hist-kasa').classList.toggle('active', which==='kasa');
+  document.getElementById('hist-kupon').classList.toggle('active', which==='kupon');
+  document.getElementById('segScoreBtn').classList.toggle('active', which==='score');
+  document.getElementById('segKasaBtn').classList.toggle('active', which==='kasa');
+  document.getElementById('segKuponBtn').classList.toggle('active', which==='kupon');
+}
+
+/* =====================================================
+   TAB 3 — KUPON (manuel giriş)
+===================================================== */
+function loadKuponHistory(){ return JSON.parse(localStorage.getItem('kp_history') || '[]'); }
+function saveKuponHistory(h){ localStorage.setItem('kp_history', JSON.stringify(h)); }
+
+function renderKuponContext(){
+  const scoreHist = loadScoreHistory();
+  const lastScore = scoreHist.length ? scoreHist[scoreHist.length-1] : null;
+  document.getElementById('ctxScore').textContent = lastScore ? `${lastScore.total}/${MAX_TOTAL} (${lastScore.pass?'ALINABİLİR':'ALINAMAZ'})` : 'Kayıt yok';
+
+  const kasaSt = loadKasaState();
+  const kuponStakeInput = document.getElementById('kuponStake');
+  if(kasaSt && kasaSt.status === 'active'){
+    document.getElementById('ctxKasa').textContent = `Seri ${kasaSt.seriesIndex} · Maç ${kasaSt.matchIndex} — ${fmt(kasaSt.currentStake)} TL`;
+    if(!kuponStakeInput.value) kuponStakeInput.value = kasaSt.currentStake;
+  } else {
+    document.getElementById('ctxKasa').textContent = 'Aktif set yok';
+  }
+}
+
+function addKupon(){
+  const type = document.getElementById('kuponType').value.trim();
+  const odds = parseFloat(document.getElementById('kuponOdds').value);
+  const stake = parseFloat(document.getElementById('kuponStake').value) || null;
+  if(!type || !odds || odds<=1){ alert('Bahis türü ve 1\'den büyük bir oran gir.'); return; }
+
+  const scoreHist = loadScoreHistory();
+  const lastScore = scoreHist.length ? scoreHist[scoreHist.length-1] : null;
+  const kasaSt = loadKasaState();
+
+  const hist = loadKuponHistory();
+  hist.push({
+    id: 'k'+Date.now(), type, odds, stake, date: new Date().toISOString(), status: 'pending',
+    linkedScore: lastScore ? { total: lastScore.total, pass: lastScore.pass, missed: lastScore.missed } : null,
+    linkedKasa: (kasaSt && kasaSt.status==='active') ? { series: kasaSt.seriesIndex, match: kasaSt.matchIndex, kasaStart: kasaSt.kasaStart } : null
+  });
+  saveKuponHistory(hist);
+  document.getElementById('kuponType').value = '';
+  document.getElementById('kuponOdds').value = '';
+  document.getElementById('kuponStake').value = '';
+  renderKuponPending();
+}
+
+function markKupon(id, status){
+  const hist = loadKuponHistory();
+  const entry = hist.find(k => k.id === id);
+  if(entry){ entry.status = status; saveKuponHistory(hist); }
+  renderKuponPending();
+}
+
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function kuponMetaLine(k){
+  const parts = [];
+  if(k.stake) parts.push(`${fmt(k.stake)} TL`);
+  if(k.linkedScore) parts.push(`Puan: ${k.linkedScore.total}/${MAX_TOTAL}`);
+  if(k.linkedKasa) parts.push(`Seri ${k.linkedKasa.series}/Maç ${k.linkedKasa.match}`);
+  return parts.join(' · ');
+}
+
+function kuponMissedHtml(k){
+  if(!k.linkedScore || !k.linkedScore.missed || k.linkedScore.missed.length === 0) return '';
+  const items = k.linkedScore.missed.map(m => `• ${escapeKuponHtml(m.txt)} (${m.pts}p)`).join('<br>');
+  return `<div class="hist-missed" style="margin-top:8px;"><b>Puan kaybettiren maddeler:</b><br>${items}</div>`;
+}
+
+function renderKuponPending(){
+  const hist = loadKuponHistory().slice().reverse().filter(k => k.status === 'pending');
+  const el = document.getElementById('kuponPending');
+  if(hist.length===0){ el.innerHTML = '<div class="empty">Bekleyen kupon yok.</div>'; return; }
+  el.innerHTML = hist.map(k => `
+    <div class="hist-entry">
+      <div class="hist-top">
+        <div><b>${escapeKuponHtml(k.type)}</b> · @ ${k.odds.toFixed(2)}</div>
+      </div>
+      <div class="hist-date" style="margin-top:4px;">${fmtDateTime(k.date)}${kuponMetaLine(k) ? ' · ' + kuponMetaLine(k) : ''}</div>
+      ${kuponMissedHtml(k)}
+      <div class="action-btns" style="margin-top:10px;">
+        <button class="btn-win" onclick="markKupon('${k.id}','won')">✓ Tuttu</button>
+        <button class="btn-lose" onclick="markKupon('${k.id}','lost')">✕ Tutmadı</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderKuponHistory(){
+  const hist = loadKuponHistory().slice().reverse();
+  const el = document.getElementById('kuponList');
+  if(hist.length===0){ el.innerHTML = '<div class="empty">Henüz kupon kaydı yok.</div>'; return; }
+  el.innerHTML = hist.map(k => {
+    const tagClass = k.status === 'won' ? 'pass' : (k.status === 'lost' ? 'fail' : '');
+    const tagTxt = k.status === 'won' ? 'TUTTU' : (k.status === 'lost' ? 'TUTMADI' : 'BEKLİYOR');
+    return `<div class="hist-entry">
+      <div class="hist-top">
+        <div class="hist-date">${fmtDateTime(k.date)}</div>
+        <div style="display:flex;align-items:center;">
+          <div class="hist-score">@ ${k.odds.toFixed(2)}</div>
+          <div class="hist-tag ${tagClass}">${tagTxt}</div>
+        </div>
+      </div>
+      <div class="hist-missed">${escapeKuponHtml(k.type)}${kuponMetaLine(k) ? '<br>' + kuponMetaLine(k) : ''}</div>
+      ${kuponMissedHtml(k)}
+    </div>`;
+  }).join('');
+}
+
+function escapeKuponHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
 function renderHistory(){
-  const hist = loadHistory().slice().reverse();
+  const hist = loadScoreHistory().slice().reverse();
   const el = document.getElementById('histList');
   if(hist.length===0){ el.innerHTML = '<div class="empty">Henüz kayıt yok.</div>'; return; }
   el.innerHTML = hist.map(h=>{
@@ -258,7 +678,141 @@ function renderHistory(){
   }).join('');
 }
 
-// ---------- START ----------
+function renderSetHistory(){
+  const hist = loadSetHistory().slice().reverse();
+  const el = document.getElementById('setsList');
+  if(hist.length===0){ el.innerHTML = '<div class="empty">Henüz tamamlanmış set yok.</div>'; return; }
+  el.innerHTML = hist.map(h=>{
+    const d = new Date(h.startedAt);
+    const dateStr = d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+    return `<div class="set-entry">
+      <div class="set-top">
+        <div><b>${fmt(h.kasaStart)} TL</b> kasa · ${dateStr}</div>
+        <div class="set-tag ${h.status==='completed'?'win':'bust'}">${h.status==='completed'?'TAMAMLANDI':'BİTTİ'}</div>
+      </div>
+      <div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">${h.matchCount} maç oynandı · Gerçekleşen kayıp: ${fmt(h.realizedLoss)} TL</div>
+    </div>`;
+  }).join('');
+}
+
+/* =====================================================
+   TAB 5 — İSTATİSTİK / ANALİZ
+===================================================== */
+function scoreBucket(total){
+  if(total >= 90) return '90-100';
+  if(total >= 80) return '80-89';
+  if(total >= 70) return '70-79';
+  return '70 altı';
+}
+function timeBucket(iso){
+  const h = new Date(iso).getHours();
+  if(h >= 6 && h < 12) return 'Sabah (06-12)';
+  if(h >= 12 && h < 18) return 'Öğlen (12-18)';
+  if(h >= 18 && h < 24) return 'Akşam (18-24)';
+  return 'Gece (00-06)';
+}
+
+function renderBarList(container, groups, orderedKeys){
+  const keys = orderedKeys || Object.keys(groups);
+  const rows = keys.filter(k => groups[k]).map(k => {
+    const g = groups[k];
+    const decided = g.won + g.lost;
+    const rate = decided > 0 ? Math.round((g.won/decided)*100) : 0;
+    return { key:k, decided, won:g.won, lost:g.lost, rate };
+  }).filter(r => r.decided > 0);
+  if(rows.length === 0){ container.innerHTML = '<div class="empty">Yeterli veri yok.</div>'; return; }
+  container.innerHTML = rows.map(r => `
+    <div class="bar-row">
+      <div class="top-line"><div class="name">${escapeKuponHtml(r.key)}</div><div class="figs">${r.won}/${r.decided} · %${r.rate}</div></div>
+      <div class="bar-track"><div class="bar-fill ${r.rate<50?'low':''}" style="width:${r.rate}%"></div></div>
+    </div>`).join('');
+}
+
+function renderStatsScreen(){
+  const kuponHist = loadKuponHistory();
+  const decided = kuponHist.filter(k => k.status === 'won' || k.status === 'lost');
+  const won = decided.filter(k => k.status === 'won');
+  const lost = decided.filter(k => k.status === 'lost');
+
+  document.getElementById('stTotalKupon').textContent = kuponHist.length;
+  const winRate = decided.length ? Math.round((won.length/decided.length)*100) : 0;
+  document.getElementById('stWinRate').textContent = winRate + '%';
+
+  let net = 0;
+  decided.forEach(k => {
+    const stake = k.stake || 0;
+    if(k.status === 'won') net += stake * (k.odds - 1);
+    else net -= stake;
+  });
+  const netEl = document.getElementById('stNet');
+  netEl.textContent = fmt(net);
+  netEl.className = 'num ' + (net >= 0 ? 'pos' : 'neg');
+
+  // ardışık kayıp serisi (tarihe göre eskiden yeniye sıralı)
+  const sortedDecided = decided.slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+  let curStreak = 0, maxStreak = 0, running = 0;
+  sortedDecided.forEach(k => {
+    if(k.status === 'lost'){ running += 1; maxStreak = Math.max(maxStreak, running); }
+    else { running = 0; }
+  });
+  // güncel seri: sondan geriye doğru kayıpları say
+  for(let i = sortedDecided.length-1; i >= 0; i--){
+    if(sortedDecided[i].status === 'lost') curStreak++; else break;
+  }
+  document.getElementById('stCurStreak').textContent = curStreak;
+  document.getElementById('stMaxStreak').textContent = maxStreak;
+
+  // bahis türüne göre
+  const byType = {};
+  decided.forEach(k => {
+    byType[k.type] = byType[k.type] || { won:0, lost:0 };
+    byType[k.type][k.status === 'won' ? 'won' : 'lost']++;
+  });
+  renderBarList(document.getElementById('statByType'), byType);
+
+  // puan aralığına göre
+  const byScore = {};
+  decided.forEach(k => {
+    if(!k.linkedScore) return;
+    const b = scoreBucket(k.linkedScore.total);
+    byScore[b] = byScore[b] || { won:0, lost:0 };
+    byScore[b][k.status === 'won' ? 'won' : 'lost']++;
+  });
+  renderBarList(document.getElementById('statByScore'), byScore, ['90-100','80-89','70-79','70 altı']);
+
+  // zaman dilimine göre
+  const byTime = {};
+  decided.forEach(k => {
+    const b = timeBucket(k.date);
+    byTime[b] = byTime[b] || { won:0, lost:0 };
+    byTime[b][k.status === 'won' ? 'won' : 'lost']++;
+  });
+  renderBarList(document.getElementById('statByTime'), byTime, ['Sabah (06-12)','Öğlen (12-18)','Akşam (18-24)','Gece (00-06)']);
+
+  // en sık kaçırılan sistem kuralları (tüm puanlama geçmişinden)
+  const scoreHist = loadScoreHistory();
+  const missedFreq = {};
+  scoreHist.forEach(h => (h.missed||[]).forEach(m => { missedFreq[m.txt] = (missedFreq[m.txt]||0) + 1; }));
+  const missedSorted = Object.entries(missedFreq).sort((a,b) => b[1]-a[1]).slice(0,6);
+  const missedEl = document.getElementById('statMissed');
+  if(missedSorted.length === 0){ missedEl.innerHTML = '<div class="empty">Yeterli veri yok.</div>'; }
+  else {
+    missedEl.innerHTML = missedSorted.map(([txt,count]) => `
+      <div class="missed-freq-row"><div>${escapeKuponHtml(txt)}</div><div class="cnt">${count}×</div></div>`).join('');
+  }
+
+  // set özeti
+  const setHist = loadSetHistory();
+  const setDone = setHist.filter(s => s.status === 'completed').length;
+  const setBust = setHist.filter(s => s.status === 'busted').length;
+  const totalLoss = setHist.reduce((s,h) => s + (h.realizedLoss||0), 0);
+  document.getElementById('stSetTotal').textContent = setHist.length;
+  document.getElementById('stSetDone').textContent = setDone;
+  document.getElementById('stSetBust').textContent = setBust;
+  document.getElementById('stSetLoss').textContent = fmt(totalLoss) + ' TL';
+}
+
+/* ---------- START ---------- */
 renderSections();
 renderTotals();
 </script>
