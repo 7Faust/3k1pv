@@ -134,6 +134,7 @@
   .missed-freq-row{display:flex; justify-content:space-between; font-size:12.5px; padding:7px 0; border-bottom:1px solid var(--rule);}
   .missed-freq-row:last-child{border-bottom:none;}
   .missed-freq-row .cnt{font-family:var(--mono); font-weight:700; color:var(--red);}
+  .del-x{background:none; border:none; color:var(--ink-soft); font-size:15px; padding:2px 4px; margin-left:8px; cursor:pointer;}
 
   nav.tabbar{position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto; background:rgba(250,247,240,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--rule); display:flex; padding-bottom:env(safe-area-inset-bottom);}
   nav.tabbar button{flex:1; background:none; border:none; padding:10px 4px 8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-soft); font-size:10px;}
@@ -247,6 +248,21 @@
       <div class="subview active" id="hist-score"><div id="histList"></div></div>
       <div class="subview" id="hist-kasa"><div id="setsList"></div></div>
       <div class="subview" id="hist-kupon"><div id="kuponList"></div></div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2>Yedekle / Geri Yükle</h2>
+        <button class="primary" onclick="exportBackup()">Dışa Aktar (Yedek Al)</button>
+        <button class="ghost" onclick="document.getElementById('importFileInput').click()">İçe Aktar (Yedek Yükle)</button>
+        <input type="file" id="importFileInput" accept="application/json" style="display:none" onchange="importBackup(event)">
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2>Verileri Yönet</h2>
+        <button class="ghost" onclick="clearData('score')">Puanlama Geçmişini Temizle</button>
+        <button class="ghost" onclick="clearData('kasa')">Kasa / Set Geçmişini Temizle</button>
+        <button class="ghost" onclick="clearData('kupon')">Kupon Geçmişini Temizle</button>
+        <button class="ghost" onclick="clearData('all')" style="color:var(--red); border-color:var(--red);">Tüm Verileri Temizle</button>
+      </div>
     </section>
 
     <!-- ============ TAB 5: İSTATİSTİK ============ -->
@@ -624,6 +640,7 @@ function renderKuponPending(){
     <div class="hist-entry">
       <div class="hist-top">
         <div><b>${escapeKuponHtml(k.type)}</b> · @ ${k.odds.toFixed(2)}</div>
+        <button class="del-x" onclick="deleteKuponEntry('${k.id}')">✕</button>
       </div>
       <div class="hist-date" style="margin-top:4px;">${fmtDateTime(k.date)}${kuponMetaLine(k) ? ' · ' + kuponMetaLine(k) : ''}</div>
       ${kuponMissedHtml(k)}
@@ -647,6 +664,7 @@ function renderKuponHistory(){
         <div style="display:flex;align-items:center;">
           <div class="hist-score">@ ${k.odds.toFixed(2)}</div>
           <div class="hist-tag ${tagClass}">${tagTxt}</div>
+          <button class="del-x" onclick="deleteKuponEntry('${k.id}')">✕</button>
         </div>
       </div>
       <div class="hist-missed">${escapeKuponHtml(k.type)}${kuponMetaLine(k) ? '<br>' + kuponMetaLine(k) : ''}</div>
@@ -671,6 +689,7 @@ function renderHistory(){
         <div style="display:flex;align-items:center;">
           <div class="hist-score ${h.pass?'pass':'fail'}">${h.total}/${MAX_TOTAL}</div>
           <div class="hist-tag ${h.pass?'pass':'fail'}">${h.pass?'ALINDI':'ELENDİ'}</div>
+          <button class="del-x" onclick="deleteScoreEntry('${h.date}')">✕</button>
         </div>
       </div>
       <div class="hist-missed">${missedTxt}</div>
@@ -688,7 +707,10 @@ function renderSetHistory(){
     return `<div class="set-entry">
       <div class="set-top">
         <div><b>${fmt(h.kasaStart)} TL</b> kasa · ${dateStr}</div>
-        <div class="set-tag ${h.status==='completed'?'win':'bust'}">${h.status==='completed'?'TAMAMLANDI':'BİTTİ'}</div>
+        <div style="display:flex;align-items:center;">
+          <div class="set-tag ${h.status==='completed'?'win':'bust'}">${h.status==='completed'?'TAMAMLANDI':'BİTTİ'}</div>
+          <button class="del-x" onclick="deleteSetEntry('${h.startedAt}')">✕</button>
+        </div>
       </div>
       <div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">${h.matchCount} maç oynandı · Gerçekleşen kayıp: ${fmt(h.realizedLoss)} TL</div>
     </div>`;
@@ -810,6 +832,83 @@ function renderStatsScreen(){
   document.getElementById('stSetDone').textContent = setDone;
   document.getElementById('stSetBust').textContent = setBust;
   document.getElementById('stSetLoss').textContent = fmt(totalLoss) + ' TL';
+}
+
+function exportBackup(){
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    app: 'bahis-sistemi',
+    sk_threshold: localStorage.getItem('sk_threshold'),
+    sk_history: localStorage.getItem('sk_history'),
+    kb_state: localStorage.getItem('kb_state'),
+    kb_set_history: localStorage.getItem('kb_set_history'),
+    kp_history: localStorage.getItem('kp_history'),
+  };
+  const jsonStr = JSON.stringify(backup, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateTag = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `bahis-sistemi-yedek-${dateTag}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function importBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let data;
+    try { data = JSON.parse(e.target.result); }
+    catch(err){ alert('Dosya okunamadı, geçerli bir yedek dosyası değil.'); return; }
+    if(data.app !== 'bahis-sistemi'){ alert('Bu dosya bu uygulamaya ait bir yedek gibi görünmüyor.'); return; }
+    if(!confirm('Bu yedeği yüklersen, telefondaki mevcut tüm veriler bu yedekle değiştirilecek. Emin misin?')) return;
+    if(data.sk_threshold != null) localStorage.setItem('sk_threshold', data.sk_threshold);
+    if(data.sk_history != null) localStorage.setItem('sk_history', data.sk_history);
+    if(data.kb_state != null) localStorage.setItem('kb_state', data.kb_state); else localStorage.removeItem('kb_state');
+    if(data.kb_set_history != null) localStorage.setItem('kb_set_history', data.kb_set_history);
+    if(data.kp_history != null) localStorage.setItem('kp_history', data.kp_history);
+    alert('Yedek başarıyla yüklendi.');
+    document.getElementById('thresholdInput').value = loadThreshold();
+    renderSections(); renderTotals();
+    renderHistory(); renderSetHistory(); renderKuponHistory();
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function deleteScoreEntry(dateIso){
+  if(!confirm('Bu puanlama kaydını silmek istediğine emin misin?')) return;
+  let hist = loadScoreHistory().filter(h => h.date !== dateIso);
+  saveScoreHistory(hist);
+  renderHistory();
+}
+function deleteSetEntry(startedAtIso){
+  if(!confirm('Bu set kaydını silmek istediğine emin misin?')) return;
+  let hist = loadSetHistory().filter(h => h.startedAt !== startedAtIso);
+  saveSetHistory(hist);
+  renderSetHistory();
+}
+function deleteKuponEntry(id){
+  if(!confirm('Bu kupon kaydını silmek istediğine emin misin?')) return;
+  let hist = loadKuponHistory().filter(k => k.id !== id);
+  saveKuponHistory(hist);
+  renderKuponHistory();
+  renderKuponPending();
+}
+
+function clearData(which){
+  const labels = { score:'puanlama geçmişini', kasa:'kasa/set geçmişini (aktif set dahil)', kupon:'kupon geçmişini', all:'TÜM verileri' };
+  if(!confirm(`${labels[which]} silmek istediğine emin misin? Bu işlem geri alınamaz.`)) return;
+  if(which === 'score' || which === 'all'){ localStorage.removeItem('sk_history'); }
+  if(which === 'kasa' || which === 'all'){ localStorage.removeItem('kb_state'); localStorage.removeItem('kb_set_history'); }
+  if(which === 'kupon' || which === 'all'){ localStorage.removeItem('kp_history'); }
+  renderHistory(); renderSetHistory(); renderKuponHistory();
+  alert('Silindi.');
 }
 
 /* ---------- START ---------- */
