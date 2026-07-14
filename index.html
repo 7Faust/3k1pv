@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sistem Puanı">
+<title>Sistem Kuralları Puanlama</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIyIiBmaWxsPSIjMkI2QjRGIi8+PHRleHQgeD0iNTAiIHk9IjY1IiBmb250LXNpemU9IjQ0IiBmb250LWZhbWlseT0iR2VvcmdpYSxzZXJpZiIgZmlsbD0iI0ZBRjdGMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0s8L3RleHQ+PC9zdmc+">
+<style>
+  :root{
+    --paper:#FAF7F0; --paper-line:#E4DECD; --ink:#2B2A28; --ink-soft:#7A7364;
+    --rule:#D8D2C0; --green:#3F6B4F; --green-soft:#E6EEE7; --red:#A8442E; --red-soft:#F4E6E1;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--paper); color:var(--ink); font-family:var(--sans); height:100%;}
+  #app{max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; padding-bottom: calc(64px + env(safe-area-inset-bottom));}
+  header{padding: calc(18px + env(safe-area-inset-top)) 20px 10px; text-align:center;}
+  header h1{font-family:Georgia,serif; font-weight:700; font-size:19px; margin:0;}
+  header .sub{font-size:11px; color:var(--ink-soft); margin-top:3px;}
+
+  main{flex:1; padding:6px 16px 20px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .section-card{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; margin-bottom:12px; overflow:hidden;}
+  .section-head{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:rgba(0,0,0,0.03); border-bottom:1px solid var(--rule);}
+  .section-head .name{font-weight:700; font-size:13.5px;}
+  .section-head .sub-score{font-family:var(--mono); font-size:13px; color:var(--ink-soft);}
+
+  .item-row{display:flex; align-items:flex-start; gap:10px; padding:11px 14px; border-bottom:1px solid var(--rule);}
+  .item-row:last-child{border-bottom:none;}
+  .checkbox{width:22px; height:22px; border-radius:6px; border:2px solid var(--ink-soft); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; color:transparent; margin-top:1px;}
+  .checkbox.checked{background:var(--green); border-color:var(--green); color:#fff;}
+  .item-row .txt{flex:1; font-size:13.5px; line-height:1.35;}
+  .item-row .pts{font-family:var(--mono); font-size:12.5px; color:var(--ink-soft); white-space:nowrap; padding-top:2px;}
+
+  .total-bar{position:sticky; bottom:0; background:rgba(250,247,240,0.95); backdrop-filter:blur(8px); padding:12px 4px 6px; border-top:1px solid var(--rule); margin-top:4px;}
+  .total-row{display:flex; justify-content:space-between; align-items:baseline; padding:0 4px;}
+  .total-row .label{font-size:12px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.4px;}
+  .total-row .value{font-family:var(--mono); font-size:30px; font-weight:800;}
+  .total-row .value.pass{color:var(--green);}
+  .total-row .value.fail{color:var(--red);}
+  .threshold-line{font-size:11px; color:var(--ink-soft); padding:2px 4px 10px;}
+
+  .verdict-banner{margin:8px 4px 10px; padding:9px 12px; border-radius:8px; font-size:12.5px; font-weight:600; text-align:center;}
+  .verdict-banner.pass{background:var(--green-soft); color:var(--green);}
+  .verdict-banner.fail{background:var(--red-soft); color:var(--red);}
+
+  button.primary{width:100%; background:var(--ink); color:var(--paper); border:none; border-radius:8px; font-weight:700; font-size:14.5px; padding:13px; cursor:pointer;}
+  button.reset{width:100%; background:none; border:1px solid var(--rule); color:var(--ink-soft); border-radius:8px; font-size:12.5px; padding:9px; margin-top:8px; cursor:pointer;}
+
+  .settings-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px 14px; font-size:12.5px; color:var(--ink-soft);}
+  .settings-row input{width:60px; font-family:var(--mono); font-size:14px; padding:6px 8px; border:1px solid var(--rule); border-radius:6px; background:#fff; color:var(--ink); text-align:center;}
+
+  .stamp-overlay{position:fixed; inset:0; background:rgba(43,42,40,0.4); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px;}
+  .stamp{background:var(--paper); border-radius:12px; padding:30px 26px; text-align:center; border:3px double var(--green); transform:rotate(-5deg); box-shadow:0 8px 30px rgba(0,0,0,0.25); max-width:300px;}
+  .stamp.bad{border-color:var(--red);}
+  .stamp .score{font-family:var(--mono); font-size:40px; font-weight:800; color:var(--green);}
+  .stamp.bad .score{color:var(--red);}
+  .stamp .verdict{font-size:13px; font-weight:700; margin-top:6px; letter-spacing:0.4px; color:var(--green);}
+  .stamp.bad .verdict{color:var(--red);}
+  .stamp .caption{font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink-soft); margin-top:6px;}
+  .stamp button{margin-top:16px;}
+
+  /* history */
+  .hist-entry{background:rgba(255,255,255,0.55); border:1px solid var(--rule); border-radius:10px; margin-bottom:10px; padding:12px 14px;}
+  .hist-top{display:flex; justify-content:space-between; align-items:center;}
+  .hist-date{font-size:12px; color:var(--ink-soft);}
+  .hist-score{font-family:var(--mono); font-weight:800; font-size:18px;}
+  .hist-score.pass{color:var(--green);}
+  .hist-score.fail{color:var(--red);}
+  .hist-tag{font-size:10px; font-weight:700; letter-spacing:0.4px; padding:2px 7px; border-radius:20px; margin-left:8px;}
+  .hist-tag.pass{background:var(--green-soft); color:var(--green);}
+  .hist-tag.fail{background:var(--red-soft); color:var(--red);}
+  .hist-missed{font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.5;}
+  .empty{text-align:center; color:var(--ink-soft); font-size:13px; padding:30px 10px;}
+
+  nav.tabbar{position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto; background:rgba(250,247,240,0.92); backdrop-filter:blur(10px); border-top:1px solid var(--rule); display:flex; padding-bottom:env(safe-area-inset-bottom);}
+  nav.tabbar button{flex:1; background:none; border:none; padding:10px 4px 8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-soft); font-size:10px;}
+  nav.tabbar button .ic{font-size:18px;}
+  nav.tabbar button.active{color:var(--green);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Sistem Kuralları Puanlama</h1>
+    <div class="sub" id="dateLabel"></div>
+  </header>
+
+  <main>
+    <section class="view active" id="view-score">
+      <div class="settings-row">
+        <span>Bahis alma eşiği</span>
+        <div><input type="number" id="thresholdInput" min="0" max="100" value="90"> / 100</div>
+      </div>
+      <div id="sections"></div>
+
+      <div class="total-bar">
+        <div class="total-row">
+          <div class="label">Toplam Puan</div>
+          <div class="value" id="liveTotal">0</div>
+        </div>
+        <div class="threshold-line" id="thresholdLine"></div>
+        <div class="verdict-banner" id="verdictBanner"></div>
+        <button class="primary" onclick="saveEntry()">Kaydet</button>
+        <button class="reset" onclick="resetChecks()">Formu Sıfırla</button>
+      </div>
+    </section>
+
+    <section class="view" id="view-history">
+      <div id="histList"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="active" data-view="score" onclick="switchTab('score')"><span class="ic">✓</span>Puanla</button>
+    <button data-view="history" onclick="switchTab('history')"><span class="ic">▤</span>Geçmiş</button>
+  </nav>
+</div>
+
+<script>
+// ---------- SABİT CHECKLİST TANIMI ----------
+const CHECKLIST = [
+  { section: "Maç Öncesi Analiz", items: [
+    { id:'a1', txt:'Bahis alınacak anlamlı bir skor veya durum var mı?', pts:11 },
+    { id:'a2', txt:'Takımların son 5 maçında 0-0 biten maç var mı?', pts:4 },
+    { id:'a3', txt:'Takımların gol ortalamaları ve FS-CS verileri kontrol edildi mi?', pts:4 },
+    { id:'a4', txt:'Kupa/eleme maçının ilk ayağı mı, kontrol edildi mi?', pts:4 },
+    { id:'a5', txt:'Kupa/ŞL/UEFA/Milli maçsa gerçekten büyük fırsat var mı?', pts:2 },
+    { id:'a6', txt:'Takımların ve ligin kalitesi yeterli mi?', pts:2 },
+    { id:'a7', txt:'Son 5 maça göre takımların motivasyonu iyi mi?', pts:2 },
+    { id:'a8', txt:'Maç öncesi oranlarda şüpheli şike riski var mı? (kontrol edildi mi)', pts:2 },
+    { id:'a9', txt:'Milli ara sonrası veya sezon başı mı?', pts:2 },
+  ]},
+  { section: "Canlı İstatistik Kontrolü", items: [
+    { id:'b1', txt:'En az 3 periyotta (10\'ar dk) ceza sahasından isabetli şut var mı?', pts:11 },
+    { id:'b2', txt:'Ceza sahası içi isabetli şutlar, dışındakilerden fazla mı? (her iki takım)', pts:11 },
+    { id:'b3', txt:'30 dk içinde isabetli şutsuz sessiz bir dönem oldu mu?', pts:11 },
+    { id:'b4', txt:'Maçta kırmızı kart var mı?', pts:11 },
+    { id:'b5', txt:'Erken gol varsa değerlendirildi mi? (kim attı, oran etkisi)', pts:2 },
+    { id:'b6', txt:'Oyuncu değişiklikleri ve pozisyonları gözden geçirildi mi?', pts:4 },
+    { id:'b7', txt:'Kaleci istatistikleri ve kurtarış kalitesi gözden geçirildi mi?', pts:2 },
+    { id:'b8', txt:'xG/xGOT verileri incelendi, kalitesiz şutlar elendi mi?', pts:4 },
+  ]},
+  { section: "Zihinsel Kontrol", items: [
+    { id:'c1', txt:'"Bu son maçım olsa yine oynar mıydım" cevabın evet mi?', pts:11 },
+  ]},
+];
+const MAX_TOTAL = CHECKLIST.reduce((s,sec)=>s+sec.items.reduce((s2,i)=>s2+i.pts,0),0);
+
+let checkedState = {};
+
+function loadThreshold(){ return parseInt(localStorage.getItem('sk_threshold') || '90', 10); }
+function saveThreshold(v){ localStorage.setItem('sk_threshold', String(v)); }
+function loadHistory(){ return JSON.parse(localStorage.getItem('sk_history') || '[]'); }
+function saveHistory(h){ localStorage.setItem('sk_history', JSON.stringify(h)); }
+
+document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('tr-TR', { weekday:'long', day:'numeric', month:'long' });
+document.getElementById('thresholdInput').value = loadThreshold();
+document.getElementById('thresholdInput').addEventListener('change', e=>{
+  let v = parseInt(e.target.value,10); if(isNaN(v)) v=90; v=Math.max(0,Math.min(100,v));
+  e.target.value = v; saveThreshold(v); renderTotals();
+});
+
+function switchTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if(name==='history') renderHistory();
+}
+
+function renderSections(){
+  const el = document.getElementById('sections');
+  el.innerHTML = CHECKLIST.map(sec=>{
+    const secMax = sec.items.reduce((s,i)=>s+i.pts,0);
+    const secScore = sec.items.reduce((s,i)=>s+(checkedState[i.id]?i.pts:0),0);
+    return `<div class="section-card">
+      <div class="section-head"><div class="name">${sec.section}</div><div class="sub-score">${secScore}/${secMax}</div></div>
+      ${sec.items.map(it=>`
+        <div class="item-row">
+          <div class="checkbox ${checkedState[it.id]?'checked':''}" onclick="toggleCheck('${it.id}')">${checkedState[it.id]?'✓':''}</div>
+          <div class="txt">${it.txt}</div>
+          <div class="pts">${it.pts}p</div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function toggleCheck(id){ checkedState[id] = !checkedState[id]; renderSections(); renderTotals(); }
+
+function currentTotal(){
+  return CHECKLIST.reduce((s,sec)=>s+sec.items.reduce((s2,i)=>s2+(checkedState[i.id]?i.pts:0),0),0);
+}
+
+function renderTotals(){
+  const total = currentTotal();
+  const threshold = loadThreshold();
+  const pass = total >= threshold;
+  const valEl = document.getElementById('liveTotal');
+  valEl.textContent = total;
+  valEl.className = 'value ' + (pass ? 'pass':'fail');
+  document.getElementById('thresholdLine').textContent = `Eşik: ${threshold} / ${MAX_TOTAL}`;
+  const banner = document.getElementById('verdictBanner');
+  banner.className = 'verdict-banner ' + (pass?'pass':'fail');
+  banner.textContent = pass ? 'BAHİS ALINABİLİR' : 'BAHİS ALINAMAZ — eşik altında';
+}
+
+function resetChecks(){ checkedState = {}; renderSections(); renderTotals(); }
+
+function saveEntry(){
+  const total = currentTotal();
+  const threshold = loadThreshold();
+  const pass = total >= threshold;
+  const missed = [];
+  CHECKLIST.forEach(sec=>sec.items.forEach(it=>{ if(!checkedState[it.id]) missed.push({section:sec.section, txt:it.txt, pts:it.pts}); }));
+  const hist = loadHistory();
+  hist.push({ date:new Date().toISOString(), total, threshold, pass, missed });
+  saveHistory(hist);
+  showStamp(total, pass);
+}
+
+function showStamp(total, pass){
+  const overlay = document.createElement('div');
+  overlay.className = 'stamp-overlay';
+  overlay.innerHTML = `
+    <div class="stamp ${pass?'':'bad'}">
+      <div class="score">${total}/${MAX_TOTAL}</div>
+      <div class="verdict">${pass?'BAHİS ALINABİLİR':'BAHİS ALINAMAZ'}</div>
+      <div class="caption">Kaydedildi</div>
+      <button class="primary" onclick="this.closest('.stamp-overlay').remove()">Tamam</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function renderHistory(){
+  const hist = loadHistory().slice().reverse();
+  const el = document.getElementById('histList');
+  if(hist.length===0){ el.innerHTML = '<div class="empty">Henüz kayıt yok.</div>'; return; }
+  el.innerHTML = hist.map(h=>{
+    const d = new Date(h.date);
+    const dateStr = d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const missedTxt = h.missed.length ? h.missed.map(m=>`• ${m.txt} (${m.pts}p)`).join('<br>') : 'Tüm maddeler işaretliydi.';
+    return `<div class="hist-entry">
+      <div class="hist-top">
+        <div class="hist-date">${dateStr}</div>
+        <div style="display:flex;align-items:center;">
+          <div class="hist-score ${h.pass?'pass':'fail'}">${h.total}/${MAX_TOTAL}</div>
+          <div class="hist-tag ${h.pass?'pass':'fail'}">${h.pass?'ALINDI':'ELENDİ'}</div>
+        </div>
+      </div>
+      <div class="hist-missed">${missedTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- START ----------
+renderSections();
+renderTotals();
+</script>
+</body>
+</html>
