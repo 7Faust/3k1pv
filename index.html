@@ -120,6 +120,7 @@
   .set-tag{font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px;}
   .set-tag.win{background:var(--green-soft); color:var(--green);}
   .set-tag.bust{background:var(--red-soft); color:var(--red);}
+  .set-tag.manual{background:var(--gold-soft); color:var(--gold);}
   .empty{text-align:center; color:var(--ink-soft); font-size:13px; padding:30px 10px;}
 
   /* --- Stats --- */
@@ -287,6 +288,7 @@
         <div class="row"><div class="lbl">Toplam Set</div><div class="val" id="stSetTotal">0</div></div>
         <div class="row"><div class="lbl">Tamamlanan</div><div class="val" id="stSetDone">0</div></div>
         <div class="row"><div class="lbl">Kasa Tükenen</div><div class="val" id="stSetBust">0</div></div>
+        <div class="row"><div class="lbl">Manuel Kapanan</div><div class="val" id="stSetManual">0</div></div>
         <div class="row"><div class="lbl">Toplam Net Sonuç</div><div class="val" id="stSetLoss">0</div></div>
       </div>
     </section>
@@ -532,10 +534,10 @@ function recordResult(result){
     st.cumulativeNet = Math.round((st.cumulativeNet + karzarar)*100)/100;
     st.seriesIndex += 1;
     st.matchIndex = 1;
-    const newBase = seriesBase(st.kasaStart, st.seriesIndex);
-    const remainPool = st.kasaStart + st.cumulativeNet;
-    if(newBase > remainPool){ st.status = 'busted'; }
-    else { st.currentStake = newBase; }
+    const suggested = seriesBase(st.kasaStart, st.seriesIndex);
+    const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
+    if(remainPool <= 0){ st.status = 'busted'; }
+    else { st.currentStake = Math.min(suggested, remainPool); }
   }
   saveKasaState(st);
   if(st.status === 'completed' || st.status === 'busted'){ archiveSet(st); }
@@ -553,9 +555,11 @@ function archiveSet(st){
 }
 
 function confirmResetSet(){
-  if(!confirm('Bu aktif seti kapatıp yeni bir set mi başlatmak istiyorsun? (Geçmişte kalır, silinmez)')) return;
   const st = loadKasaState();
-  if(st && st.status === 'active'){ st.status = 'busted'; archiveSet(st); }
+  if(!st) return;
+  const guncelBakiye = fmt(st.kasaStart + st.cumulativeNet);
+  if(!confirm(`Bu aktif seti şimdi manuel olarak kapatmak istediğine emin misin? Güncel set bakiyesi: ${guncelBakiye} TL. (Geçmişte kalır, silinmez)`)) return;
+  if(st.status === 'active'){ st.status = 'manual'; archiveSet(st); }
   localStorage.removeItem('kb_state');
   renderActive();
 }
@@ -679,11 +683,13 @@ function renderSetHistory(){
         <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL</div>
         <div class="${l.result==='win'?'win':'lose'}">${l.karzarar>=0?'+':''}${fmt(l.karzarar)} TL</div>
       </div>`).join('');
+    const tagClass = h.status==='completed' ? 'win' : (h.status==='manual' ? 'manual' : 'bust');
+    const tagTxt = h.status==='completed' ? 'TAMAMLANDI' : (h.status==='manual' ? 'MANUEL KAPANDI' : 'BİTTİ');
     return `<div class="set-entry">
       <div class="set-top">
         <div><b>${fmt(h.kasaStart)} TL</b> kasa · ${dateStr}</div>
         <div style="display:flex;align-items:center;">
-          <div class="set-tag ${h.status==='completed'?'win':'bust'}">${h.status==='completed'?'TAMAMLANDI':'BİTTİ'}</div>
+          <div class="set-tag ${tagClass}">${tagTxt}</div>
           <button class="del-x" onclick="deleteSetEntry('${h.startedAt}')">✕</button>
         </div>
       </div>
@@ -804,10 +810,12 @@ function renderStatsScreen(){
   const setHist = loadSetHistory();
   const setDone = setHist.filter(s => s.status === 'completed').length;
   const setBust = setHist.filter(s => s.status === 'busted').length;
+  const setManual = setHist.filter(s => s.status === 'manual').length;
   const totalLoss = setHist.reduce((s,h) => s + (h.netResult||0), 0);
   document.getElementById('stSetTotal').textContent = setHist.length;
   document.getElementById('stSetDone').textContent = setDone;
   document.getElementById('stSetBust').textContent = setBust;
+  document.getElementById('stSetManual').textContent = setManual;
   document.getElementById('stSetLoss').textContent = fmt(totalLoss) + ' TL';
 }
 
