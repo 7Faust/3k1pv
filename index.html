@@ -269,8 +269,18 @@
       </div>
 
       <div class="card">
+        <h2>Bahis Türüne Göre ROI</h2>
+        <div id="roiByType"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
         <h2>Puan Aralığına Göre Başarı</h2>
         <div id="statByScore"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Puan Aralığına Göre ROI</h2>
+        <div id="roiByScore"><div class="empty">Yeterli veri yok.</div></div>
       </div>
 
       <div class="card">
@@ -733,6 +743,39 @@ function renderBarList(container, groups, orderedKeys){
     </div>`).join('');
 }
 
+// yatırım getirisi (ROI) hesabı için gruplama: sadece geçerli bir tutarı (stake) olan kuponlar dahil edilir
+function buildRoiGroups(decided, keyFn){
+  const groups = {};
+  decided.forEach(k => {
+    const key = keyFn(k);
+    if(key == null) return;
+    if(!k.stake || k.stake <= 0) return; // tutarı olmayan kupon ROI'ye dahil edilemez
+    groups[key] = groups[key] || { stakeSum:0, profitSum:0, count:0 };
+    const profit = k.status === 'won' ? k.stake * (k.odds - 1) : -k.stake;
+    groups[key].stakeSum = Math.round((groups[key].stakeSum + k.stake)*100)/100;
+    groups[key].profitSum = Math.round((groups[key].profitSum + profit)*100)/100;
+    groups[key].count += 1;
+  });
+  return groups;
+}
+
+function renderRoiList(container, groups, orderedKeys){
+  const keys = orderedKeys || Object.keys(groups);
+  const rows = keys.filter(k => groups[k]).map(k => {
+    const g = groups[k];
+    const roi = g.stakeSum > 0 ? Math.round((g.profitSum/g.stakeSum)*1000)/10 : 0;
+    return { key:k, stakeSum:g.stakeSum, profitSum:g.profitSum, roi, count:g.count };
+  });
+  if(rows.length === 0){ container.innerHTML = '<div class="empty">Yeterli veri yok (tutar girilmiş kupon gerekiyor).</div>'; return; }
+  container.innerHTML = rows.map(r => {
+    const pct = Math.min(100, Math.round(Math.abs(r.roi)));
+    return `<div class="bar-row">
+      <div class="top-line"><div class="name">${escapeKuponHtml(r.key)}</div><div class="figs">${r.count} bahis · Yatırım: ${fmt(r.stakeSum)} TL · ROI: ${r.roi>=0?'+':''}${r.roi}%</div></div>
+      <div class="bar-track"><div class="bar-fill ${r.roi<0?'low':''}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
 function renderStatsScreen(){
   const kuponHist = loadKuponHistory();
   const decided = kuponHist.filter(k => k.status === 'won' || k.status === 'lost');
@@ -775,6 +818,10 @@ function renderStatsScreen(){
   });
   renderBarList(document.getElementById('statByType'), byType);
 
+  // bahis türüne göre ROI
+  const roiByType = buildRoiGroups(decided, k => k.type);
+  renderRoiList(document.getElementById('roiByType'), roiByType);
+
   // puan aralığına göre
   const byScore = {};
   decided.forEach(k => {
@@ -784,6 +831,10 @@ function renderStatsScreen(){
     byScore[b][k.status === 'won' ? 'won' : 'lost']++;
   });
   renderBarList(document.getElementById('statByScore'), byScore, ['90-100','80-89','70-79','70 altı']);
+
+  // puan aralığına göre ROI
+  const roiByScore = buildRoiGroups(decided, k => k.linkedScore ? scoreBucket(k.linkedScore.total) : null);
+  renderRoiList(document.getElementById('roiByScore'), roiByScore, ['90-100','80-89','70-79','70 altı']);
 
   // zaman dilimine göre
   const byTime = {};
