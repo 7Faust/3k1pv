@@ -844,11 +844,11 @@ function importBackup(event){
     catch(err){ alert('Dosya okunamadı, geçerli bir yedek dosyası değil.'); return; }
     if(data.app !== 'bahis-sistemi'){ alert('Bu dosya bu uygulamaya ait bir yedek gibi görünmüyor.'); return; }
     if(!confirm('Bu yedeği yüklersen, telefondaki mevcut tüm veriler bu yedekle değiştirilecek. Emin misin?')) return;
-    if(data.sk_threshold != null) localStorage.setItem('sk_threshold', data.sk_threshold);
-    if(data.sk_history != null) localStorage.setItem('sk_history', data.sk_history);
+    if(data.sk_threshold != null) localStorage.setItem('sk_threshold', data.sk_threshold); else localStorage.removeItem('sk_threshold');
+    if(data.sk_history != null) localStorage.setItem('sk_history', data.sk_history); else localStorage.removeItem('sk_history');
     if(data.kb_state != null) localStorage.setItem('kb_state', data.kb_state); else localStorage.removeItem('kb_state');
-    if(data.kb_set_history != null) localStorage.setItem('kb_set_history', data.kb_set_history);
-    if(data.kp_history != null) localStorage.setItem('kp_history', data.kp_history);
+    if(data.kb_set_history != null) localStorage.setItem('kb_set_history', data.kb_set_history); else localStorage.removeItem('kb_set_history');
+    if(data.kp_history != null) localStorage.setItem('kp_history', data.kp_history); else localStorage.removeItem('kp_history');
     alert('Yedek başarıyla yüklendi.');
     document.getElementById('thresholdInput').value = loadThreshold();
     renderSections(); renderTotals();
