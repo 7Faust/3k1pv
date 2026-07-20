@@ -289,6 +289,16 @@
       </div>
 
       <div class="card">
+        <h2>Bahis Oranına Göre Başarı</h2>
+        <div id="statByOdds"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Bahis Oranına Göre ROI</h2>
+        <div id="roiByOdds"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
         <h2>En Sık Kaçırılan Sistem Kuralları</h2>
         <div id="statMissed"><div class="empty">Yeterli veri yok.</div></div>
       </div>
@@ -506,10 +516,14 @@ function updateProgressPreview(){
 function renderMatchLog(st){
   const el = document.getElementById('matchLog');
   if(!st.log || st.log.length===0){ el.innerHTML = '<div class="empty">Henüz maç kaydı yok.</div>'; return; }
-  el.innerHTML = st.log.slice().reverse().map(l=>`
+  const indexed = st.log.map((l,i) => ({l,i}));
+  el.innerHTML = indexed.slice().reverse().map(({l,i}) => `
     <div class="log-row">
-      <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL</div>
-      <div class="${l.result==='win'?'win':'lose'}">${l.karzarar>=0?'+':''}${fmt(l.karzarar)} TL</div>
+      <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL<br><span style="font-size:11px; color:var(--ink-soft);">${fmtDateTime(l.date)}</span></div>
+      <div style="display:flex; align-items:center;">
+        <div class="${l.result==='win'?'win':'lose'}">${l.karzarar>=0?'+':''}${fmt(l.karzarar)} TL</div>
+        <button class="del-x" onclick="deleteLogEntry(${i})">✕</button>
+      </div>
     </div>`).join('');
 }
 
@@ -519,18 +533,19 @@ function recordResult(result){
   const usedOdds = parseFloat(document.getElementById('matchOdds').value) || st.odds;
   const usedStake = parseFloat(document.getElementById('stakeInput').value) || st.currentStake;
   const targetProfit = st.kasaStart/3;
+  const betId = 'b' + Date.now() + Math.random().toString(36).slice(2,6);
 
   // Bu bahsi kupon geçmişine de otomatik işle (bilgi tekrar girilmesin diye)
   const betType = document.getElementById('kuponType').value.trim() || '(belirtilmedi)';
   const seriesForKupon = st.seriesIndex;
   const matchForKupon = st.matchIndex;
-  recordKuponEntry(betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart);
+  recordKuponEntry(betId, betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart);
   document.getElementById('kuponType').value = '';
 
   if(result === 'win'){
     const kazanc = Math.round(usedStake * usedOdds * 100)/100;
     const karzarar = Math.round((kazanc - usedStake)*100)/100;
-    st.log.push({ series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc, karzarar, result, date: new Date().toISOString() });
+    st.log.push({ id: betId, series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc, karzarar, result, date: new Date().toISOString() });
     st.cumulativeNet = Math.round((st.cumulativeNet + karzarar)*100)/100;
     if(st.cumulativeNet >= targetProfit){
       st.status = 'completed';
@@ -540,7 +555,7 @@ function recordResult(result){
     }
   } else {
     const karzarar = -usedStake;
-    st.log.push({ series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc: 0, karzarar, result, date: new Date().toISOString() });
+    st.log.push({ id: betId, series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc: 0, karzarar, result, date: new Date().toISOString() });
     st.cumulativeNet = Math.round((st.cumulativeNet + karzarar)*100)/100;
     st.seriesIndex += 1;
     st.matchIndex = 1;
@@ -551,6 +566,47 @@ function recordResult(result){
   }
   saveKasaState(st);
   if(st.status === 'completed' || st.status === 'busted'){ archiveSet(st); }
+  renderActive();
+}
+
+// Bir bacak silindiğinde set durumunu (seri/sıra/tutar/kâr-zarar) kalan kayıtlara göre yeniden hesaplar
+function recomputeStateFromLog(st){
+  st.cumulativeNet = Math.round(st.log.reduce((s,l) => s + l.karzarar, 0) * 100) / 100;
+  if(st.log.length === 0){
+    st.seriesIndex = 1; st.matchIndex = 1; st.currentStake = seriesBase(st.kasaStart, 1);
+  } else {
+    const last = st.log[st.log.length - 1];
+    if(last.result === 'win'){
+      st.seriesIndex = last.series;
+      st.matchIndex = last.match + 1;
+      st.currentStake = last.kazanc;
+    } else {
+      st.seriesIndex = last.series + 1;
+      st.matchIndex = 1;
+      const suggested = seriesBase(st.kasaStart, st.seriesIndex);
+      const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
+      st.currentStake = Math.min(suggested, Math.max(0, remainPool));
+    }
+  }
+  const targetProfit = st.kasaStart/3;
+  const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
+  if(st.cumulativeNet >= targetProfit){ st.status = 'completed'; }
+  else if(remainPool <= 0){ st.status = 'busted'; }
+  else { st.status = 'active'; }
+}
+
+function deleteLogEntry(index){
+  const st = loadKasaState();
+  if(!st || index < 0 || index >= st.log.length) return;
+  if(!confirm('Bu bahis kaydını silmek istediğine emin misin? Set özeti buna göre yeniden hesaplanacak.')) return;
+  const removed = st.log[index];
+  st.log.splice(index, 1);
+  recomputeStateFromLog(st);
+  saveKasaState(st);
+  if(removed && removed.id){
+    const kh = loadKuponHistory().filter(k => k.id !== removed.id);
+    saveKuponHistory(kh);
+  }
   renderActive();
 }
 
@@ -604,12 +660,12 @@ function renderCtxScore(){
   if(el) el.textContent = lastScore ? `${lastScore.total}/${MAX_TOTAL} (${lastScore.pass?'ALINABİLİR':'ALINAMAZ'})` : 'Kayıt yok';
 }
 
-function recordKuponEntry(type, odds, stake, status, series, match, kasaStart){
+function recordKuponEntry(id, type, odds, stake, status, series, match, kasaStart){
   const scoreHist = loadScoreHistory();
   const lastScore = scoreHist.length ? scoreHist[scoreHist.length-1] : null;
   const hist = loadKuponHistory();
   hist.push({
-    id: 'k'+Date.now(), type, odds, stake, date: new Date().toISOString(), status,
+    id, type, odds, stake, date: new Date().toISOString(), status,
     linkedScore: lastScore ? { total: lastScore.total, pass: lastScore.pass, missed: lastScore.missed } : null,
     linkedKasa: { series, match, kasaStart }
   });
@@ -690,7 +746,7 @@ function renderSetHistory(){
     const dateStr = d.toLocaleDateString('tr-TR',{day:'2-digit',month:'2-digit',year:'2-digit'});
     const logRows = (h.log||[]).map(l=>`
       <div class="log-row">
-        <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL</div>
+        <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL<br><span style="font-size:11px; color:var(--ink-soft);">${fmtDateTime(l.date)}</span></div>
         <div class="${l.result==='win'?'win':'lose'}">${l.karzarar>=0?'+':''}${fmt(l.karzarar)} TL</div>
       </div>`).join('');
     const tagClass = h.status==='completed' ? 'win' : (h.status==='manual' ? 'manual' : 'bust');
@@ -704,6 +760,7 @@ function renderSetHistory(){
         </div>
       </div>
       <div style="font-size:12px; color:var(--ink-soft); margin-top:6px;">${h.matchCount} bahis oynandı · Net Sonuç: <b style="color:${h.netResult>=0?'var(--green)':'var(--red)'}">${h.netResult>=0?'+':''}${fmt(h.netResult)} TL</b></div>
+      <div style="font-size:11px; color:var(--ink-soft); margin-top:4px;">Başlangıç: ${fmtDateTime(h.startedAt)} · Bitiş: ${fmtDateTime(h.endedAt)}</div>
       <button class="ghost" style="margin-top:8px;" onclick="toggleSetDetail(${idx})">Detayı Göster/Gizle</button>
       <div id="setDetail${idx}" style="display:none; margin-top:8px;">${logRows || '<div class="empty">Kayıt yok.</div>'}</div>
     </div>`;
@@ -725,6 +782,13 @@ function timeBucket(iso){
   if(h >= 12 && h < 18) return 'Öğlen (12-18)';
   if(h >= 18 && h < 24) return 'Akşam (18-24)';
   return 'Gece (00-06)';
+}
+function oddsBucket(odds){
+  if(odds < 1.30) return '< 1.30';
+  if(odds < 1.50) return '1.30 - 1.49';
+  if(odds < 1.70) return '1.50 - 1.69';
+  if(odds < 2.00) return '1.70 - 1.99';
+  return '2.00 ve üzeri';
 }
 
 function renderBarList(container, groups, orderedKeys){
@@ -844,6 +908,20 @@ function renderStatsScreen(){
     byTime[b][k.status === 'won' ? 'won' : 'lost']++;
   });
   renderBarList(document.getElementById('statByTime'), byTime, ['Sabah (06-12)','Öğlen (12-18)','Akşam (18-24)','Gece (00-06)']);
+
+  // bahis oranına göre başarı
+  const oddsOrder = ['< 1.30','1.30 - 1.49','1.50 - 1.69','1.70 - 1.99','2.00 ve üzeri'];
+  const byOdds = {};
+  decided.forEach(k => {
+    const b = oddsBucket(k.odds);
+    byOdds[b] = byOdds[b] || { won:0, lost:0 };
+    byOdds[b][k.status === 'won' ? 'won' : 'lost']++;
+  });
+  renderBarList(document.getElementById('statByOdds'), byOdds, oddsOrder);
+
+  // bahis oranına göre ROI
+  const roiByOdds = buildRoiGroups(decided, k => oddsBucket(k.odds));
+  renderRoiList(document.getElementById('roiByOdds'), roiByOdds, oddsOrder);
 
   // en sık kaçırılan sistem kuralları (tüm puanlama geçmişinden)
   const scoreHist = loadScoreHistory();
