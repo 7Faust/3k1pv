@@ -177,6 +177,9 @@
       <div class="subview active" id="kasa-setup">
         <div class="card">
           <h2>Yeni Set Başlat</h2>
+          <label class="field">Kaynak (site)</label>
+          <input type="text" id="setupKaynak" placeholder="örn. İddaa, 1xbet" list="kaynakSuggestions">
+          <datalist id="kaynakSuggestions"></datalist>
           <label class="field">Kasa tutarı (TL)</label>
           <input type="number" id="setupKasa" placeholder="örn. 7000" value="7000">
           <label class="field">Ortalama bahis oranı</label>
@@ -189,6 +192,7 @@
         <div id="statusBannerWrap"></div>
         <div class="card">
           <h2>Set Özeti</h2>
+          <div class="row"><div class="lbl">Kaynak</div><div class="val" id="sKaynak">-</div></div>
           <div class="row"><div class="lbl">Başlangıç Kasa</div><div class="val" id="sKasa">-</div></div>
           <div class="row"><div class="lbl">Hedef Kazanç (kasa/3)</div><div class="val" id="sHedef">-</div></div>
           <div class="row"><div class="lbl">Toplam Hedef Varlık</div><div class="val" id="sToplam">-</div></div>
@@ -232,7 +236,15 @@
         <button id="segKuponBtn" onclick="switchHistSub('kupon')">Kupon</button>
       </div>
       <div class="subview active" id="hist-score"><div id="histList"></div></div>
-      <div class="subview" id="hist-kasa"><div id="setsList"></div></div>
+      <div class="subview" id="hist-kasa">
+        <div class="row" style="padding:0 0 10px;">
+          <div class="lbl">Kaynağa göre filtrele</div>
+          <select id="kaynakFilter" onchange="renderSetHistory()" style="font-family:var(--sans); font-size:13px; padding:6px 8px; border:1px solid var(--rule); border-radius:6px; background:#fff; color:var(--ink);">
+            <option value="">Tümü</option>
+          </select>
+        </div>
+        <div id="setsList"></div>
+      </div>
       <div class="subview" id="hist-kupon"><div id="kuponList"></div></div>
 
       <div class="card" style="margin-top:16px;">
@@ -296,6 +308,16 @@
       <div class="card">
         <h2>Bahis Oranına Göre ROI</h2>
         <div id="roiByOdds"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Kaynağa (Siteye) Göre Başarı</h2>
+        <div id="statByKaynak"><div class="empty">Yeterli veri yok.</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Kaynağa (Siteye) Göre ROI</h2>
+        <div id="roiByKaynak"><div class="empty">Yeterli veri yok.</div></div>
       </div>
 
       <div class="card">
@@ -444,25 +466,37 @@ function saveKasaState(s){ localStorage.setItem('kb_state', JSON.stringify(s)); 
 function loadSetHistory(){ return JSON.parse(localStorage.getItem('kb_set_history') || '[]'); }
 function saveSetHistory(h){ localStorage.setItem('kb_set_history', JSON.stringify(h)); }
 
+function renderKaynakSuggestions(){
+  const hist = loadSetHistory();
+  const kaynaklar = [...new Set(hist.map(h => h.kaynak).filter(Boolean))];
+  const dl = document.getElementById('kaynakSuggestions');
+  if(dl) dl.innerHTML = kaynaklar.map(k => `<option value="${escapeKuponHtml(k)}"></option>`).join('');
+}
+
 function seriesBase(kasaStart, seriesIndex){
-  return Math.round((kasaStart/7) * Math.pow(2, seriesIndex-1) * 100)/100;
+  // Artık her seri sabit kasa/7 tutarında oynanıyor (katlama yok) — kaybedilen seriler
+  // set genelindeki kümülatif kâr/zarar hedefe ulaşana kadar aynı sabit birimle telafi edilmeye çalışılır.
+  return Math.round((kasaStart/7) * 100)/100;
 }
 
 function startNewSet(){
+  const kaynak = document.getElementById('setupKaynak').value.trim() || '(belirtilmedi)';
   const kasa = parseFloat(document.getElementById('setupKasa').value);
   const odds = parseFloat(document.getElementById('setupOdds').value);
   if(!kasa || kasa<=0 || !odds || odds<=1){ alert('Geçerli bir kasa tutarı ve 1\'den büyük bir oran gir.'); return; }
   const state = {
-    kasaStart: kasa, odds: odds, seriesIndex: 1, matchIndex: 1,
+    kaynak, kasaStart: kasa, odds: odds, seriesIndex: 1, matchIndex: 1,
     currentStake: seriesBase(kasa, 1), cumulativeNet: 0,
     status: 'active', log: [], startedAt: new Date().toISOString()
   };
   saveKasaState(state);
+  document.getElementById('setupKaynak').value = '';
   renderActive();
 }
 
 function renderActive(){
   const st = loadKasaState();
+  renderKaynakSuggestions();
   const setupEl = document.getElementById('kasa-setup');
   const activeEl = document.getElementById('kasa-active');
   if(!st){ setupEl.classList.add('active'); activeEl.classList.remove('active'); return; }
@@ -473,6 +507,7 @@ function renderActive(){
   const totalTarget = st.kasaStart + targetProfit;
   const guncelBakiye = st.kasaStart + st.cumulativeNet;
 
+  document.getElementById('sKaynak').textContent = st.kaynak || '(belirtilmedi)';
   document.getElementById('sKasa').textContent = fmt(st.kasaStart) + ' TL';
   document.getElementById('sHedef').textContent = fmt(targetProfit) + ' TL';
   document.getElementById('sToplam').textContent = fmt(totalTarget) + ' TL';
@@ -539,7 +574,7 @@ function recordResult(result){
   const betType = document.getElementById('kuponType').value.trim() || '(belirtilmedi)';
   const seriesForKupon = st.seriesIndex;
   const matchForKupon = st.matchIndex;
-  recordKuponEntry(betId, betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart);
+  recordKuponEntry(betId, betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart, st.kaynak);
   document.getElementById('kuponType').value = '';
 
   if(result === 'win'){
@@ -613,7 +648,7 @@ function deleteLogEntry(index){
 function archiveSet(st){
   const hist = loadSetHistory();
   hist.push({
-    kasaStart: st.kasaStart, odds: st.odds, status: st.status,
+    kaynak: st.kaynak || '(belirtilmedi)', kasaStart: st.kasaStart, odds: st.odds, status: st.status,
     netResult: st.cumulativeNet, matchCount: st.log.length,
     startedAt: st.startedAt, endedAt: new Date().toISOString(), log: st.log
   });
@@ -660,14 +695,14 @@ function renderCtxScore(){
   if(el) el.textContent = lastScore ? `${lastScore.total}/${MAX_TOTAL} (${lastScore.pass?'ALINABİLİR':'ALINAMAZ'})` : 'Kayıt yok';
 }
 
-function recordKuponEntry(id, type, odds, stake, status, series, match, kasaStart){
+function recordKuponEntry(id, type, odds, stake, status, series, match, kasaStart, kaynak){
   const scoreHist = loadScoreHistory();
   const lastScore = scoreHist.length ? scoreHist[scoreHist.length-1] : null;
   const hist = loadKuponHistory();
   hist.push({
     id, type, odds, stake, date: new Date().toISOString(), status,
     linkedScore: lastScore ? { total: lastScore.total, pass: lastScore.pass, missed: lastScore.missed } : null,
-    linkedKasa: { series, match, kasaStart }
+    linkedKasa: { series, match, kasaStart, kaynak }
   });
   saveKuponHistory(hist);
 }
@@ -738,7 +773,17 @@ function renderHistory(){
 }
 
 function renderSetHistory(){
-  const hist = loadSetHistory().slice().reverse();
+  const fullHist = loadSetHistory().slice().reverse();
+
+  // filtre dropdown'ını doldur (mevcut seçimi koruyarak)
+  const filterEl = document.getElementById('kaynakFilter');
+  const currentFilter = filterEl ? filterEl.value : '';
+  const kaynaklar = [...new Set(fullHist.map(h => h.kaynak).filter(Boolean))];
+  if(filterEl){
+    filterEl.innerHTML = '<option value="">Tümü</option>' + kaynaklar.map(k => `<option value="${escapeKuponHtml(k)}" ${k===currentFilter?'selected':''}>${escapeKuponHtml(k)}</option>`).join('');
+  }
+
+  const hist = currentFilter ? fullHist.filter(h => h.kaynak === currentFilter) : fullHist;
   const el = document.getElementById('setsList');
   if(hist.length===0){ el.innerHTML = '<div class="empty">Henüz tamamlanmış set yok.</div>'; return; }
   el.innerHTML = hist.map((h,idx)=>{
@@ -753,7 +798,7 @@ function renderSetHistory(){
     const tagTxt = h.status==='completed' ? 'TAMAMLANDI' : (h.status==='manual' ? 'MANUEL KAPANDI' : 'BİTTİ');
     return `<div class="set-entry">
       <div class="set-top">
-        <div><b>${fmt(h.kasaStart)} TL</b> kasa · ${dateStr}</div>
+        <div><b>${escapeKuponHtml(h.kaynak || '(belirtilmedi)')}</b> · ${fmt(h.kasaStart)} TL kasa · ${dateStr}</div>
         <div style="display:flex;align-items:center;">
           <div class="set-tag ${tagClass}">${tagTxt}</div>
           <button class="del-x" onclick="deleteSetEntry('${h.startedAt}')">✕</button>
@@ -922,6 +967,20 @@ function renderStatsScreen(){
   // bahis oranına göre ROI
   const roiByOdds = buildRoiGroups(decided, k => oddsBucket(k.odds));
   renderRoiList(document.getElementById('roiByOdds'), roiByOdds, oddsOrder);
+
+  // kaynağa (siteye) göre başarı
+  const byKaynak = {};
+  decided.forEach(k => {
+    const kn = (k.linkedKasa && k.linkedKasa.kaynak) ? k.linkedKasa.kaynak : null;
+    if(kn == null) return;
+    byKaynak[kn] = byKaynak[kn] || { won:0, lost:0 };
+    byKaynak[kn][k.status === 'won' ? 'won' : 'lost']++;
+  });
+  renderBarList(document.getElementById('statByKaynak'), byKaynak);
+
+  // kaynağa (siteye) göre ROI
+  const roiByKaynak = buildRoiGroups(decided, k => (k.linkedKasa && k.linkedKasa.kaynak) ? k.linkedKasa.kaynak : null);
+  renderRoiList(document.getElementById('roiByKaynak'), roiByKaynak);
 
   // en sık kaçırılan sistem kuralları (tüm puanlama geçmişinden)
   const scoreHist = loadScoreHistory();
