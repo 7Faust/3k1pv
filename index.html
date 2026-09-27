@@ -174,58 +174,19 @@
 
     <!-- ============ TAB 2: KASA ============ -->
     <section class="view" id="view-kasa">
-      <div class="subview active" id="kasa-setup">
-        <div class="card">
-          <h2>Yeni Set Başlat</h2>
-          <label class="field">Kaynak (site)</label>
-          <input type="text" id="setupKaynak" placeholder="örn. İddaa, 1xbet" list="kaynakSuggestions">
-          <datalist id="kaynakSuggestions"></datalist>
-          <label class="field">Kasa tutarı (TL)</label>
-          <input type="number" id="setupKasa" placeholder="örn. 7000" value="7000">
-          <label class="field">Ortalama bahis oranı</label>
-          <input type="number" id="setupOdds" step="0.01" value="1.50">
-          <button class="primary" onclick="startNewSet()">Seti Başlat</button>
-        </div>
+      <div class="card">
+        <h2>Yeni Set Başlat</h2>
+        <label class="field">Kaynak (site)</label>
+        <input type="text" id="setupKaynak" placeholder="örn. İddaa, 1xbet" list="kaynakSuggestions">
+        <datalist id="kaynakSuggestions"></datalist>
+        <label class="field">Kasa tutarı (TL)</label>
+        <input type="number" id="setupKasa" placeholder="örn. 7000" value="7000">
+        <label class="field">Ortalama bahis oranı</label>
+        <input type="number" id="setupOdds" step="0.01" value="1.50">
+        <button class="primary" onclick="startNewSet()">Yeni Set Başlat</button>
       </div>
-
-      <div class="subview" id="kasa-active">
-        <div id="statusBannerWrap"></div>
-        <div class="card">
-          <h2>Set Özeti</h2>
-          <div class="row"><div class="lbl">Kaynak</div><div class="val" id="sKaynak">-</div></div>
-          <div class="row"><div class="lbl">Başlangıç Kasa</div><div class="val" id="sKasa">-</div></div>
-          <div class="row"><div class="lbl">Hedef Kazanç (kasa/3)</div><div class="val" id="sHedef">-</div></div>
-          <div class="row"><div class="lbl">Toplam Hedef Varlık</div><div class="val" id="sToplam">-</div></div>
-          <div class="row"><div class="lbl">Ortalama Oran</div><div class="val" id="sOdds">-</div></div>
-          <div class="row"><div class="lbl">Güncel Kâr/Zarar</div><div class="val" id="sLoss">-</div></div>
-          <div class="row"><div class="lbl">Güncel Set Bakiyesi</div><div class="val" id="sRemain">-</div></div>
-        </div>
-        <div class="card" id="liveCard">
-          <h2>Şu An</h2>
-          <div class="row"><div class="lbl">Seri</div><div class="val" id="curSeries">-</div></div>
-          <div class="row"><div class="lbl">Serinin Maçı</div><div class="val" id="curMatch">-</div></div>
-          <div class="row"><div class="lbl">Son Sistem Puanı</div><div class="val" id="ctxScore">-</div></div>
-          <div class="stake-display">
-            <div class="lbl">Bu maça gireceğin tutar (önerilen — istersen değiştir)</div>
-            <input type="number" id="stakeInput" step="0.01" class="num-input" oninput="updateProgressPreview()">
-            <div class="sub" id="curProgressLabel"></div>
-            <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
-          </div>
-          <label class="field">Bahis Türü</label>
-          <input type="text" id="kuponType" placeholder="örn. Üst 2.5, MS1, KG Var">
-          <label class="field">Bu maçın gerçek oranı (farklıysa değiştir)</label>
-          <input type="number" id="matchOdds" step="0.01" oninput="updateProgressPreview()">
-          <div class="action-btns">
-            <button class="btn-win" onclick="recordResult('win')">✓ Kazandım</button>
-            <button class="btn-lose" onclick="recordResult('lose')">✕ Kaybettim</button>
-          </div>
-        </div>
-        <div class="card">
-          <h2>Bu Setin Geçmişi</h2>
-          <div id="matchLog"><div class="empty">Henüz maç kaydı yok.</div></div>
-        </div>
-        <button class="ghost" onclick="confirmResetSet()">Bu Seti Bitir / Yeni Set Başlat</button>
-      </div>
+      <div class="row" style="padding:0 4px 10px;"><div class="lbl">Son Sistem Puanı</div><div class="val" id="ctxScore">-</div></div>
+      <div id="activeSetsList"><div class="empty">Henüz aktif set yok.</div></div>
     </section>
 
     <!-- ============ TAB 4: GEÇMİŞ ============ -->
@@ -461,8 +422,8 @@ function showScoreStamp(total, pass){
 /* =====================================================
    TAB 2 — KASA / SET / SERİ
 ===================================================== */
-function loadKasaState(){ return JSON.parse(localStorage.getItem('kb_state') || 'null'); }
-function saveKasaState(s){ localStorage.setItem('kb_state', JSON.stringify(s)); }
+function loadActiveSets(){ return JSON.parse(localStorage.getItem('kb_active_sets') || '[]'); }
+function saveActiveSets(arr){ localStorage.setItem('kb_active_sets', JSON.stringify(arr)); }
 function loadSetHistory(){ return JSON.parse(localStorage.getItem('kb_set_history') || '[]'); }
 function saveSetHistory(h){ localStorage.setItem('kb_set_history', JSON.stringify(h)); }
 
@@ -474,8 +435,7 @@ function renderKaynakSuggestions(){
 }
 
 function seriesBase(kasaStart, seriesIndex){
-  // Artık her seri sabit kasa/7 tutarında oynanıyor (katlama yok) — kaybedilen seriler
-  // set genelindeki kümülatif kâr/zarar hedefe ulaşana kadar aynı sabit birimle telafi edilmeye çalışılır.
+  // Her seri sabit kasa/7 tutarında oynanıyor (katlama yok).
   return Math.round((kasaStart/7) * 100)/100;
 }
 
@@ -484,160 +444,220 @@ function startNewSet(){
   const kasa = parseFloat(document.getElementById('setupKasa').value);
   const odds = parseFloat(document.getElementById('setupOdds').value);
   if(!kasa || kasa<=0 || !odds || odds<=1){ alert('Geçerli bir kasa tutarı ve 1\'den büyük bir oran gir.'); return; }
-  const state = {
+  const base = seriesBase(kasa, 1);
+  const newSet = {
+    id: 's' + Date.now() + Math.random().toString(36).slice(2,6),
     kaynak, kasaStart: kasa, odds: odds, seriesIndex: 1, matchIndex: 1,
-    currentStake: seriesBase(kasa, 1), cumulativeNet: 0,
+    currentStake: base, attemptBase: base, debtStack: [], cumulativeNet: 0,
     status: 'active', log: [], startedAt: new Date().toISOString()
   };
-  saveKasaState(state);
+  const sets = loadActiveSets();
+  sets.push(newSet);
+  saveActiveSets(sets);
   document.getElementById('setupKaynak').value = '';
   renderActive();
 }
 
-function renderActive(){
-  const st = loadKasaState();
-  renderKaynakSuggestions();
-  const setupEl = document.getElementById('kasa-setup');
-  const activeEl = document.getElementById('kasa-active');
-  if(!st){ setupEl.classList.add('active'); activeEl.classList.remove('active'); return; }
-  setupEl.classList.remove('active'); activeEl.classList.add('active');
-  renderCtxScore();
+// Bir bacağı (kazanç/kayıp) verilen state üzerine uygular; kazanç/kayıp tutarını döner.
+//
+// Kurtarma mantığı (LIFO — en son kaybedilen seri önce kurtarılır):
+// - Bir seri kaybedilince, kaybedilen tutar 'debtStack'e (kayıp yığını) eklenir; yeni deneme
+//   sabit taban (kasa/7) ile bu yığının EN ÜSTÜNDEKİ (en son) kaybı hedefler.
+// - Bir deneme kazanmaya devam ettikçe, o denemenin kendi taban bahsine göre ürettiği toplam
+//   kâr (attemptProfit = kazanç - attemptBase) hedeflenen kaybı (yığının tepesi) karşılayınca
+//   o kayıp "kurtarılmış" sayılır ve yığından çıkarılır; kalan fazlalık (avantaj) bir sonraki
+//   (yığında bir alttaki) kaybı kurtarmaya çalışacak yeni denemenin taban bahsine eklenir.
+// - Yığın boşalınca (tüm geçmiş kayıplar kurtarılınca), normal şekilde tam reinvestment ile
+//   asıl hedefe (kasa/3) doğru devam edilir.
+// - Set genelindeki toplam hedefe (kasa/3) ulaşılması, kurtarma aşamasında bile olsa her zaman
+//   önceliklidir ve seti tamamlar.
+function applyLegToState(state, stake, odds, result){
+  const targetProfit = state.kasaStart/3;
+  let kazanc = 0, karzarar;
+  if(!state.debtStack) state.debtStack = [];
+  if(state.attemptBase == null) state.attemptBase = seriesBase(state.kasaStart, 1);
 
-  const targetProfit = st.kasaStart/3;
-  const totalTarget = st.kasaStart + targetProfit;
-  const guncelBakiye = st.kasaStart + st.cumulativeNet;
+  if(result === 'win'){
+    kazanc = Math.round(stake*odds*100)/100;
+    karzarar = Math.round((kazanc-stake)*100)/100;
+    state.cumulativeNet = Math.round((state.cumulativeNet+karzarar)*100)/100;
 
-  document.getElementById('sKaynak').textContent = st.kaynak || '(belirtilmedi)';
-  document.getElementById('sKasa').textContent = fmt(st.kasaStart) + ' TL';
-  document.getElementById('sHedef').textContent = fmt(targetProfit) + ' TL';
-  document.getElementById('sToplam').textContent = fmt(totalTarget) + ' TL';
-  document.getElementById('sOdds').textContent = st.odds.toFixed(2);
-  document.getElementById('sLoss').textContent = fmt(st.cumulativeNet) + ' TL';
-  document.getElementById('sRemain').textContent = fmt(guncelBakiye) + ' TL';
-
-  const bannerWrap = document.getElementById('statusBannerWrap');
-  const liveCard = document.getElementById('liveCard');
-  if(st.status === 'completed'){
-    bannerWrap.innerHTML = '<div class="status-banner win">SET TAMAMLANDI — Hedefe ulaşıldı</div>';
-    liveCard.style.display = 'none';
-  } else if(st.status === 'busted'){
-    bannerWrap.innerHTML = '<div class="status-banner bust">SET BİTTİ — Kasa tükendi</div>';
-    liveCard.style.display = 'none';
+    if(state.cumulativeNet >= targetProfit){
+      state.status = 'completed';
+    } else if(state.debtStack.length > 0){
+      const attemptProfit = Math.round((kazanc - state.attemptBase)*100)/100;
+      const topDebt = state.debtStack[state.debtStack.length-1];
+      if(attemptProfit >= topDebt.amount){
+        // bu kayıp kurtarıldı — fazlalığı bir sonraki kurtarma denemesine taşı
+        const surplus = Math.round((attemptProfit - topDebt.amount)*100)/100;
+        state.debtStack.pop();
+        const newBase = Math.round((seriesBase(state.kasaStart, state.seriesIndex+1) + surplus)*100)/100;
+        state.attemptBase = newBase;
+        state.currentStake = newBase;
+        state.matchIndex = 1;
+        state.seriesIndex += 1;
+      } else {
+        // henüz kurtarılmadı, aynı deneme içinde tüm getiriyi yeniden yatır
+        state.currentStake = kazanc;
+        state.matchIndex += 1;
+      }
+    } else {
+      // kurtarılacak kayıp yok, doğrudan asıl hedefe doğru tam reinvestment
+      state.currentStake = kazanc;
+      state.matchIndex += 1;
+    }
   } else {
-    bannerWrap.innerHTML = '';
-    liveCard.style.display = '';
-    document.getElementById('curSeries').textContent = st.seriesIndex;
-    document.getElementById('curMatch').textContent = st.matchIndex;
-    document.getElementById('stakeInput').value = st.currentStake;
-    document.getElementById('matchOdds').value = st.odds.toFixed(2);
-    updateProgressPreview();
+    karzarar = -stake;
+    state.cumulativeNet = Math.round((state.cumulativeNet+karzarar)*100)/100;
+    state.debtStack.push({ seriesNo: state.seriesIndex, amount: stake });
+    state.seriesIndex += 1;
+    state.matchIndex = 1;
+    const suggested = seriesBase(state.kasaStart, state.seriesIndex);
+    const remainPool = Math.round((state.kasaStart+state.cumulativeNet)*100)/100;
+    if(remainPool <= 0){ state.status = 'busted'; }
+    else { state.currentStake = Math.min(suggested, remainPool); state.attemptBase = state.currentStake; }
   }
-  renderMatchLog(st);
+  return { kazanc, karzarar };
 }
 
-function updateProgressPreview(){
-  const st = loadKasaState();
+function renderActive(){
+  renderKaynakSuggestions();
+  renderCtxScore();
+  renderActiveSetsList();
+}
+
+function renderActiveSetsList(){
+  const sets = loadActiveSets();
+  const el = document.getElementById('activeSetsList');
+  if(sets.length === 0){ el.innerHTML = '<div class="empty">Henüz aktif set yok.</div>'; return; }
+  el.innerHTML = sets.map(st => {
+    const targetProfit = st.kasaStart/3;
+    const totalTarget = st.kasaStart + targetProfit;
+    const guncelBakiye = st.kasaStart + st.cumulativeNet;
+    const debtStack = st.debtStack || [];
+    const topDebt = debtStack.length ? debtStack[debtStack.length-1] : null;
+    const debtLine = topDebt
+      ? `Seri ${topDebt.seriesNo} kaybı — ${fmt(topDebt.amount)} TL${debtStack.length>1 ? ` (kuyrukta ${debtStack.length-1} kayıp daha)` : ''}`
+      : 'Yok — ana hedefe çalışılıyor';
+    return `<div class="card set-card">
+      <h2>${escapeKuponHtml(st.kaynak)}</h2>
+      <div class="row"><div class="lbl">Başlangıç Kasa</div><div class="val">${fmt(st.kasaStart)} TL</div></div>
+      <div class="row"><div class="lbl">Hedef Kazanç (kasa/3)</div><div class="val">${fmt(targetProfit)} TL</div></div>
+      <div class="row"><div class="lbl">Toplam Hedef Varlık</div><div class="val">${fmt(totalTarget)} TL</div></div>
+      <div class="row"><div class="lbl">Ortalama Oran</div><div class="val">${st.odds.toFixed(2)}</div></div>
+      <div class="row"><div class="lbl">Güncel Kâr/Zarar</div><div class="val">${fmt(st.cumulativeNet)} TL</div></div>
+      <div class="row"><div class="lbl">Güncel Set Bakiyesi</div><div class="val">${fmt(guncelBakiye)} TL</div></div>
+      <div class="row"><div class="lbl">Seri</div><div class="val">${st.seriesIndex}</div></div>
+      <div class="row"><div class="lbl">Sıra</div><div class="val">${st.matchIndex}</div></div>
+      <div class="row"><div class="lbl">Kurtarılmaya Çalışılan Kayıp</div><div class="val" style="font-size:12px; text-align:right;">${debtLine}</div></div>
+      <div class="stake-display">
+        <div class="lbl">Bu maça gireceğin tutar (önerilen — istersen değiştir)</div>
+        <input type="number" id="stakeInput_${st.id}" step="0.01" class="num-input" value="${st.currentStake}" oninput="updateProgressPreview('${st.id}')">
+        <div class="sub" id="curProgressLabel_${st.id}"></div>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar_${st.id}" style="width:0%"></div></div>
+      </div>
+      <label class="field">Bahis Türü</label>
+      <input type="text" id="kuponType_${st.id}" placeholder="örn. Üst 2.5, MS1, KG Var">
+      <label class="field">Bu maçın gerçek oranı (farklıysa değiştir)</label>
+      <input type="number" id="matchOdds_${st.id}" step="0.01" value="${st.odds.toFixed(2)}" oninput="updateProgressPreview('${st.id}')">
+      <div class="action-btns">
+        <button class="btn-win" onclick="recordResult('${st.id}','win')">✓ Kazandım</button>
+        <button class="btn-lose" onclick="recordResult('${st.id}','lose')">✕ Kaybettim</button>
+      </div>
+      <h2 style="margin-top:16px;">Bu Setin Geçmişi</h2>
+      <div>${buildMatchLogHtml(st)}</div>
+      <button class="ghost" style="margin-top:8px;" onclick="confirmResetSet('${st.id}')">Bu Seti Bitir</button>
+    </div>`;
+  }).join('');
+  sets.forEach(st => updateProgressPreview(st.id));
+}
+
+function updateProgressPreview(setId){
+  const sets = loadActiveSets();
+  const st = sets.find(s => s.id === setId);
   if(!st || st.status !== 'active') return;
+  const stakeEl = document.getElementById('stakeInput_'+setId);
+  const oddsEl = document.getElementById('matchOdds_'+setId);
+  if(!stakeEl || !oddsEl) return;
   const targetProfit = st.kasaStart/3;
-  const stakeVal = parseFloat(document.getElementById('stakeInput').value) || st.currentStake;
-  const oddsVal = parseFloat(document.getElementById('matchOdds').value) || st.odds;
-  const hypotheticalKazanc = Math.round(stakeVal*oddsVal*100)/100;
-  const hypotheticalNet = Math.round((st.cumulativeNet + (hypotheticalKazanc - stakeVal))*100)/100;
+  const stakeVal = parseFloat(stakeEl.value) || st.currentStake;
+  const oddsVal = parseFloat(oddsEl.value) || st.odds;
+  const clone = JSON.parse(JSON.stringify(st));
+  applyLegToState(clone, stakeVal, oddsVal, 'win');
   const pct = Math.max(0, Math.min(100, Math.round((st.cumulativeNet/targetProfit)*100)));
-  document.getElementById('progressBar').style.width = pct + '%';
-  document.getElementById('curProgressLabel').textContent = `Bu maçı kazanırsan set kâr/zararın: ${fmt(hypotheticalNet)} TL olur (hedef: ${fmt(targetProfit)} TL)`;
+  const bar = document.getElementById('progressBar_'+setId);
+  if(bar) bar.style.width = pct + '%';
+  const label = document.getElementById('curProgressLabel_'+setId);
+  if(label) label.textContent = `Bu maçı kazanırsan set kâr/zararın: ${fmt(clone.cumulativeNet)} TL olur (hedef: ${fmt(targetProfit)} TL)`;
 }
 
-function renderMatchLog(st){
-  const el = document.getElementById('matchLog');
-  if(!st.log || st.log.length===0){ el.innerHTML = '<div class="empty">Henüz maç kaydı yok.</div>'; return; }
+function buildMatchLogHtml(st){
+  if(!st.log || st.log.length===0) return '<div class="empty">Henüz maç kaydı yok.</div>';
   const indexed = st.log.map((l,i) => ({l,i}));
-  el.innerHTML = indexed.slice().reverse().map(({l,i}) => `
+  return indexed.slice().reverse().map(({l,i}) => `
     <div class="log-row">
       <div>Seri ${l.series} · Sıra ${l.match} · ${fmt(l.stake)} TL @ ${l.odds.toFixed(2)} → Kazanç: ${fmt(l.kazanc)} TL<br><span style="font-size:11px; color:var(--ink-soft);">${fmtDateTime(l.date)}</span></div>
       <div style="display:flex; align-items:center;">
         <div class="${l.result==='win'?'win':'lose'}">${l.karzarar>=0?'+':''}${fmt(l.karzarar)} TL</div>
-        <button class="del-x" onclick="deleteLogEntry(${i})">✕</button>
+        <button class="del-x" onclick="deleteLogEntry('${st.id}', ${i})">✕</button>
       </div>
     </div>`).join('');
 }
 
-function recordResult(result){
-  const st = loadKasaState();
-  if(!st || st.status !== 'active') return;
-  const usedOdds = parseFloat(document.getElementById('matchOdds').value) || st.odds;
-  const usedStake = parseFloat(document.getElementById('stakeInput').value) || st.currentStake;
-  const targetProfit = st.kasaStart/3;
+function recordResult(setId, result){
+  const sets = loadActiveSets();
+  const idx = sets.findIndex(s => s.id === setId);
+  if(idx < 0) return;
+  const st = sets[idx];
+  if(st.status !== 'active') return;
+  const usedOdds = parseFloat(document.getElementById('matchOdds_'+setId).value) || st.odds;
+  const usedStake = parseFloat(document.getElementById('stakeInput_'+setId).value) || st.currentStake;
   const betId = 'b' + Date.now() + Math.random().toString(36).slice(2,6);
-
-  // Bu bahsi kupon geçmişine de otomatik işle (bilgi tekrar girilmesin diye)
-  const betType = document.getElementById('kuponType').value.trim() || '(belirtilmedi)';
+  const betType = document.getElementById('kuponType_'+setId).value.trim() || '(belirtilmedi)';
   const seriesForKupon = st.seriesIndex;
   const matchForKupon = st.matchIndex;
-  recordKuponEntry(betId, betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart, st.kaynak);
-  document.getElementById('kuponType').value = '';
 
-  if(result === 'win'){
-    const kazanc = Math.round(usedStake * usedOdds * 100)/100;
-    const karzarar = Math.round((kazanc - usedStake)*100)/100;
-    st.log.push({ id: betId, series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc, karzarar, result, date: new Date().toISOString() });
-    st.cumulativeNet = Math.round((st.cumulativeNet + karzarar)*100)/100;
-    if(st.cumulativeNet >= targetProfit){
-      st.status = 'completed';
-    } else {
-      st.currentStake = kazanc; // tüm getiriyi bir sonraki bacağa yatır (reinvest)
-      st.matchIndex += 1;
-    }
+  const { kazanc, karzarar } = applyLegToState(st, usedStake, usedOdds, result);
+  st.log.push({ id: betId, series: seriesForKupon, match: matchForKupon, stake: usedStake, odds: usedOdds, kazanc, karzarar, result, date: new Date().toISOString() });
+  recordKuponEntry(betId, betType, usedOdds, usedStake, result==='win'?'won':'lost', seriesForKupon, matchForKupon, st.kasaStart, st.kaynak);
+
+  if(st.status === 'completed' || st.status === 'busted'){
+    archiveSet(st);
+    sets.splice(idx, 1);
   } else {
-    const karzarar = -usedStake;
-    st.log.push({ id: betId, series: st.seriesIndex, match: st.matchIndex, stake: usedStake, odds: usedOdds, kazanc: 0, karzarar, result, date: new Date().toISOString() });
-    st.cumulativeNet = Math.round((st.cumulativeNet + karzarar)*100)/100;
-    st.seriesIndex += 1;
-    st.matchIndex = 1;
-    const suggested = seriesBase(st.kasaStart, st.seriesIndex);
-    const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
-    if(remainPool <= 0){ st.status = 'busted'; }
-    else { st.currentStake = Math.min(suggested, remainPool); }
+    sets[idx] = st;
   }
-  saveKasaState(st);
-  if(st.status === 'completed' || st.status === 'busted'){ archiveSet(st); }
+  saveActiveSets(sets);
   renderActive();
 }
 
-// Bir bacak silindiğinde set durumunu (seri/sıra/tutar/kâr-zarar) kalan kayıtlara göre yeniden hesaplar
+// Bir bacak silindiğinde, o setin tüm kayıtları baştan yeniden oynatılarak (replay)
+// seri/sıra/tutar/borç/kâr-zarar doğru şekilde yeniden hesaplanır.
 function recomputeStateFromLog(st){
-  st.cumulativeNet = Math.round(st.log.reduce((s,l) => s + l.karzarar, 0) * 100) / 100;
-  if(st.log.length === 0){
-    st.seriesIndex = 1; st.matchIndex = 1; st.currentStake = seriesBase(st.kasaStart, 1);
-  } else {
-    const last = st.log[st.log.length - 1];
-    if(last.result === 'win'){
-      st.seriesIndex = last.series;
-      st.matchIndex = last.match + 1;
-      st.currentStake = last.kazanc;
-    } else {
-      st.seriesIndex = last.series + 1;
-      st.matchIndex = 1;
-      const suggested = seriesBase(st.kasaStart, st.seriesIndex);
-      const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
-      st.currentStake = Math.min(suggested, Math.max(0, remainPool));
-    }
-  }
-  const targetProfit = st.kasaStart/3;
-  const remainPool = Math.round((st.kasaStart + st.cumulativeNet)*100)/100;
-  if(st.cumulativeNet >= targetProfit){ st.status = 'completed'; }
-  else if(remainPool <= 0){ st.status = 'busted'; }
-  else { st.status = 'active'; }
+  const originalLog = st.log;
+  const base = seriesBase(st.kasaStart, 1);
+  st.seriesIndex = 1; st.matchIndex = 1; st.cumulativeNet = 0; st.status = 'active';
+  st.currentStake = base; st.attemptBase = base; st.debtStack = [];
+  st.log = [];
+  originalLog.forEach(entry => {
+    if(st.status !== 'active'){ st.log.push(entry); return; }
+    const { kazanc, karzarar } = applyLegToState(st, entry.stake, entry.odds, entry.result);
+    st.log.push({ ...entry, kazanc, karzarar });
+  });
 }
 
-function deleteLogEntry(index){
-  const st = loadKasaState();
-  if(!st || index < 0 || index >= st.log.length) return;
+function deleteLogEntry(setId, index){
+  const sets = loadActiveSets();
+  const idx = sets.findIndex(s => s.id === setId);
+  if(idx < 0) return;
+  const st = sets[idx];
+  if(index < 0 || index >= st.log.length) return;
   if(!confirm('Bu bahis kaydını silmek istediğine emin misin? Set özeti buna göre yeniden hesaplanacak.')) return;
   const removed = st.log[index];
   st.log.splice(index, 1);
   recomputeStateFromLog(st);
-  saveKasaState(st);
+  sets[idx] = st;
+  saveActiveSets(sets);
   if(removed && removed.id){
     const kh = loadKuponHistory().filter(k => k.id !== removed.id);
     saveKuponHistory(kh);
@@ -655,13 +675,17 @@ function archiveSet(st){
   saveSetHistory(hist);
 }
 
-function confirmResetSet(){
-  const st = loadKasaState();
-  if(!st) return;
+function confirmResetSet(setId){
+  const sets = loadActiveSets();
+  const idx = sets.findIndex(s => s.id === setId);
+  if(idx < 0) return;
+  const st = sets[idx];
   const guncelBakiye = fmt(st.kasaStart + st.cumulativeNet);
-  if(!confirm(`Bu aktif seti şimdi manuel olarak kapatmak istediğine emin misin? Güncel set bakiyesi: ${guncelBakiye} TL. (Geçmişte kalır, silinmez)`)) return;
-  if(st.status === 'active'){ st.status = 'manual'; archiveSet(st); }
-  localStorage.removeItem('kb_state');
+  if(!confirm(`Bu aktif seti (${st.kaynak}) şimdi manuel olarak kapatmak istediğine emin misin? Güncel set bakiyesi: ${guncelBakiye} TL. (Geçmişte kalır, silinmez)`)) return;
+  st.status = 'manual';
+  archiveSet(st);
+  sets.splice(idx, 1);
+  saveActiveSets(sets);
   renderActive();
 }
 
@@ -1013,7 +1037,7 @@ function exportBackup(){
     app: 'bahis-sistemi',
     sk_threshold: localStorage.getItem('sk_threshold'),
     sk_history: localStorage.getItem('sk_history'),
-    kb_state: localStorage.getItem('kb_state'),
+    kb_active_sets: localStorage.getItem('kb_active_sets'),
     kb_set_history: localStorage.getItem('kb_set_history'),
     kp_history: localStorage.getItem('kp_history'),
   };
@@ -1042,7 +1066,7 @@ function importBackup(event){
     if(!confirm('Bu yedeği yüklersen, telefondaki mevcut tüm veriler bu yedekle değiştirilecek. Emin misin?')) return;
     if(data.sk_threshold != null) localStorage.setItem('sk_threshold', data.sk_threshold); else localStorage.removeItem('sk_threshold');
     if(data.sk_history != null) localStorage.setItem('sk_history', data.sk_history); else localStorage.removeItem('sk_history');
-    if(data.kb_state != null) localStorage.setItem('kb_state', data.kb_state); else localStorage.removeItem('kb_state');
+    if(data.kb_active_sets != null) localStorage.setItem('kb_active_sets', data.kb_active_sets); else localStorage.removeItem('kb_active_sets');
     if(data.kb_set_history != null) localStorage.setItem('kb_set_history', data.kb_set_history); else localStorage.removeItem('kb_set_history');
     if(data.kp_history != null) localStorage.setItem('kp_history', data.kp_history); else localStorage.removeItem('kp_history');
     alert('Yedek başarıyla yüklendi.');
@@ -1074,10 +1098,10 @@ function deleteKuponEntry(id){
 }
 
 function clearData(which){
-  const labels = { score:'puanlama geçmişini', kasa:'kasa/set geçmişini (aktif set dahil)', kupon:'kupon geçmişini', all:'TÜM verileri' };
+  const labels = { score:'puanlama geçmişini', kasa:'kasa/set geçmişini (tüm aktif setler dahil)', kupon:'kupon geçmişini', all:'TÜM verileri' };
   if(!confirm(`${labels[which]} silmek istediğine emin misin? Bu işlem geri alınamaz.`)) return;
   if(which === 'score' || which === 'all'){ localStorage.removeItem('sk_history'); }
-  if(which === 'kasa' || which === 'all'){ localStorage.removeItem('kb_state'); localStorage.removeItem('kb_set_history'); }
+  if(which === 'kasa' || which === 'all'){ localStorage.removeItem('kb_active_sets'); localStorage.removeItem('kb_set_history'); }
   if(which === 'kupon' || which === 'all'){ localStorage.removeItem('kp_history'); }
   renderHistory(); renderSetHistory(); renderKuponHistory();
   alert('Silindi.');
