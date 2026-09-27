@@ -461,14 +461,16 @@ function startNewSet(){
 // Bir bacağı (kazanç/kayıp) verilen state üzerine uygular; kazanç/kayıp tutarını döner.
 //
 // Kurtarma mantığı (LIFO — en son kaybedilen seri önce kurtarılır):
-// - Bir seri kaybedilince, kaybedilen tutar 'debtStack'e (kayıp yığını) eklenir; yeni deneme
-//   sabit taban (kasa/7) ile bu yığının EN ÜSTÜNDEKİ (en son) kaybı hedefler.
-// - Bir deneme kazanmaya devam ettikçe, o denemenin kendi taban bahsine göre ürettiği toplam
-//   kâr (attemptProfit = kazanç - attemptBase) hedeflenen kaybı (yığının tepesi) karşılayınca
-//   o kayıp "kurtarılmış" sayılır ve yığından çıkarılır; kalan fazlalık (avantaj) bir sonraki
-//   (yığında bir alttaki) kaybı kurtarmaya çalışacak yeni denemenin taban bahsine eklenir.
-// - Yığın boşalınca (tüm geçmiş kayıplar kurtarılınca), normal şekilde tam reinvestment ile
-//   asıl hedefe (kasa/3) doğru devam edilir.
+// - Bir seri kaybedilince, kaybedilen tutar 'debtStack'e (kayıp yığını) eklenir; yeni "merdiven"
+//   sabit taban (kasa/7) ile başlar ve bu taban, merdiven boyunca (kayıp gelene kadar) SABİT kalır.
+// - Her kazanılan bacaktan sonra, merdivenin en başından beri üretilen TOPLAM kâr (kazanç - sabit taban)
+//   hesaplanır. Bu, yığının tepesindeki (en son) kaybı karşılıyorsa o kayıp yığından çıkarılır ve
+//   BİR SONRAKİ bahis = bu bacağın kazancı EKSİ az önce kurtarılan kaybın tutarı olarak önerilir
+//   (taban değil, doğrudan kaybın kendisi çıkarılır — böylece merdiven boyunca biriken tüm fazlalık
+//   otomatik olarak sonraki bahse taşınmış olur). Yığında başka kayıp varsa aynı sabit taban ile
+//   bir sonraki kaybı hedeflemeye devam edilir.
+// - Yığın boşalınca (tüm geçmiş kayıplar kurtarılınca), doğrudan tam reinvestment ile asıl hedefe
+//   (kasa/3) doğru devam edilir.
 // - Set genelindeki toplam hedefe (kasa/3) ulaşılması, kurtarma aşamasında bile olsa her zaman
 //   önceliklidir ve seti tamamlar.
 function applyLegToState(state, stake, odds, result){
@@ -485,19 +487,19 @@ function applyLegToState(state, stake, odds, result){
     if(state.cumulativeNet >= targetProfit){
       state.status = 'completed';
     } else if(state.debtStack.length > 0){
-      const attemptProfit = Math.round((kazanc - state.attemptBase)*100)/100;
-      const topDebt = state.debtStack[state.debtStack.length-1];
-      if(attemptProfit >= topDebt.amount){
-        // bu kayıp kurtarıldı — fazlalığı bir sonraki kurtarma denemesine taşı
-        const surplus = Math.round((attemptProfit - topDebt.amount)*100)/100;
-        state.debtStack.pop();
-        const newBase = Math.round((seriesBase(state.kasaStart, state.seriesIndex+1) + surplus)*100)/100;
-        state.attemptBase = newBase;
-        state.currentStake = newBase;
+      const ladderProfit = Math.round((kazanc - state.attemptBase)*100)/100;
+      let poppedSum = 0;
+      while(state.debtStack.length > 0 && ladderProfit >= Math.round((poppedSum + state.debtStack[state.debtStack.length-1].amount)*100)/100){
+        poppedSum = Math.round((poppedSum + state.debtStack.pop().amount)*100)/100;
+      }
+      if(poppedSum > 0){
+        // en az bir kayıp kurtarıldı — bir sonraki bahis, kazançtan kurtarılan kaybın çıkarılmasıyla bulunur
+        state.currentStake = Math.max(0, Math.round((kazanc - poppedSum)*100)/100);
         state.matchIndex = 1;
         state.seriesIndex += 1;
+        // sabit taban (attemptBase) merdiven boyunca değişmez, sadece gerçek bir kayıpta sıfırlanır
       } else {
-        // henüz kurtarılmadı, aynı deneme içinde tüm getiriyi yeniden yatır
+        // henüz kurtarılmadı, aynı merdiven içinde tüm getiriyi yeniden yatır
         state.currentStake = kazanc;
         state.matchIndex += 1;
       }
