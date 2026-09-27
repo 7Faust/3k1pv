@@ -511,7 +511,9 @@ function applyLegToState(state, stake, odds, result){
   } else {
     karzarar = -stake;
     state.cumulativeNet = Math.round((state.cumulativeNet+karzarar)*100)/100;
-    state.debtStack.push({ seriesNo: state.seriesIndex, amount: stake });
+    // Borç yığınına HER ZAMAN sabit birim (kasa/7) eklenir — gerçekte ne kadar risk
+    // edilmiş olursa olsun (bir kurtarma denemesi daha büyük bir tutarla kaybedilmiş olsa bile).
+    state.debtStack.push({ seriesNo: state.seriesIndex, amount: seriesBase(state.kasaStart, state.seriesIndex) });
     state.seriesIndex += 1;
     state.matchIndex = 1;
     const suggested = seriesBase(state.kasaStart, state.seriesIndex);
